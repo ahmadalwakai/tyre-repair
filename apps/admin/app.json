@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "TyreRepair Admin",
+    "slug": "tyrerepair-admin",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "tyrerepairadmin",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "android": {
+      "package": "uk.tyrerepair.admin",
+      "versionCode": 1,
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "backgroundColor": "#0B0B0F"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#D4AF37",
+          "defaultChannel": "admin-alerts",
+          "sounds": [
+            "./assets/sounds/admin-alert.mp3"
+          ]
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "notification": {
+      "color": "#D4AF37",
+      "androidMode": "default"
+    },
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}

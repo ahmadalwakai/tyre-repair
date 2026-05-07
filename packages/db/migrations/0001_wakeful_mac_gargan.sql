@@ -1,0 +1,2 @@
+CREATE TYPE "public"."locking_wheel_nut_status" AS ENUM('HAVE_KEY', 'NO_KEY', 'STANDARD_ONLY');--> statement-breakpoint
+ALTER TABLE "bookings" ADD COLUMN "locking_wheel_nut_status" "locking_wheel_nut_status" DEFAULT 'STANDARD_ONLY' NOT NULL;

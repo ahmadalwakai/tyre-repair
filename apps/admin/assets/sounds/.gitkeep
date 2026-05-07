@@ -1,0 +1,4 @@
+# Bundled custom notification sounds for the admin app.
+#
+# Currently bundled: admin-alert.mp3 (owner-provided).
+# NOTE: a new EAS Build is required whenever this file changes.
