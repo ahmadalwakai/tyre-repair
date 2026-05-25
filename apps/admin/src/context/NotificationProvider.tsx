@@ -28,11 +28,7 @@ import {
   sendAdminTestNotification,
   unregisterAdminPushTokenOnServer,
 } from '@/lib/notifications/preferences';
-import {
-  playAdminAlertSoundIfAllowed,
-  startAdminAlertLoopIfAllowed,
-  stopAdminAlertLoop,
-} from '@/lib/notifications/sound';
+import { playSound, playSoundLoop, stopSound, setUiFeedbackEnabled } from '@/lib/sound/play-sound';
 import { subscribePrivate } from '@/lib/realtime/client';
 import { getRecentUnhandledCallClicks } from '@/lib/api/call-click-events';
 import type {
@@ -42,6 +38,17 @@ import type {
   NotificationPermissionStatusResult,
   PushRegistrationStatus,
 } from '@/lib/notifications/types';
+import type { IncomingLead, IncomingLeadStatus } from '@/types/incoming-leads';
+import {
+  createLeadFromCallClick,
+  createLeadFromEmergencyAssist,
+  dedupeIncomingLead,
+  isLeadExpired,
+  mergeLocationIntoLead,
+  setLeadStatus,
+  sortIncomingLeads,
+} from '@/lib/incoming-leads/lead-queue';
+import { shouldPlayFullLeadSound } from '@/lib/incoming-leads/sound-policy';
 
 const DEFAULT_PREFS: AdminNotificationPreferenceState = {
   pushEnabled: true,
@@ -81,9 +88,17 @@ function templateForRealtime(event: { type: string; payload: Record<string, unkn
     case 'booking.created': {
       const customer = String(p['customerName'] ?? 'Customer');
       const total = formatGbp(typeof p['totalPriceGbp'] === 'number' ? Number(p['totalPriceGbp']) * 100 : undefined);
+      const isBuyTyres = String(p['source'] ?? '') === 'tyre_shop';
+      const fittingMethod = String(p['fittingMethod'] ?? '');
+      const fittingLabel =
+        fittingMethod === 'HOME'
+          ? ' • home fitting'
+          : fittingMethod === 'GARAGE'
+            ? ' • garage fitting'
+            : '';
       return {
-        title: 'New booking confirmed',
-        body: `${customer} • ${total}`,
+        title: isBuyTyres ? 'New Buy Tyres order' : 'New booking confirmed',
+        body: `${customer} • ${total}${isBuyTyres ? fittingLabel : ''}`,
         category: 'booking.created',
         screenTarget: 'bookings',
       };
@@ -224,6 +239,15 @@ interface NotificationContextValue {
   incomingCall: IncomingCallInfo | null;
   emergencyAssist: EmergencyAssistInfo | null;
   newBooking: NewBookingInfo | null;
+  // Unified incoming-leads queue (Call Now + Emergency Assist + Callback).
+  incomingLeads: IncomingLead[];
+  incomingLeadHistory: IncomingLead[];
+  activeLead: IncomingLead | null;
+  queueCount: number;
+  lastLeadReceivedAt: string | null;
+  lastLeadSoundAt: number | null;
+  lastPopupShownAt: string | null;
+  lastRealtimeEventName: string | null;
   refreshPermission: () => Promise<void>;
   requestPermission: () => Promise<NotificationPermissionStatusResult>;
   registerDevice: () => Promise<PushRegistrationStatus>;
@@ -238,6 +262,10 @@ interface NotificationContextValue {
   dismissIncomingCall: () => void;
   dismissEmergencyAssist: () => void;
   dismissNewBooking: () => void;
+  // Unified queue actions.
+  markActiveLeadInProgress: () => void;
+  markLeadHandled: (leadId: string) => void;
+  dismissLead: (leadId: string) => void;
   unregisterCurrentDevice: () => Promise<void>;
 }
 
@@ -249,6 +277,9 @@ export interface IncomingCallInfo {
   jobType: 'ASSESSMENT' | 'REPLACEMENT' | null;
   sourcePage: string | null;
   sourceComponent: string | null;
+  networkCity: string | null;
+  networkRegion: string | null;
+  networkCountry: string | null;
   receivedAt: string;
 }
 
@@ -305,14 +336,185 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const [loadingPreferences, setLoadingPreferences] = useState(false);
   const [preferencesError, setPreferencesError] = useState<string | null>(null);
   const [banner, setBanner] = useState<InAppNotification | null>(null);
-  const [incomingCall, setIncomingCall] = useState<IncomingCallInfo | null>(null);
-  const [emergencyAssist, setEmergencyAssist] = useState<EmergencyAssistInfo | null>(null);
-  const [queuedEmergencyAssist, setQueuedEmergencyAssist] = useState<EmergencyAssistInfo | null>(null);
   const [newBooking, setNewBooking] = useState<NewBookingInfo | null>(null);
+  // Unified incoming-leads queue: any NEW/VIEWED/IN_PROGRESS lead lives here.
+  const [incomingLeads, setIncomingLeads] = useState<IncomingLead[]>([]);
+  const [incomingLeadHistory, setIncomingLeadHistory] = useState<IncomingLead[]>([]);
+  const [lastLeadReceivedAt, setLastLeadReceivedAt] = useState<string | null>(null);
+  const [lastLeadSoundAt, setLastLeadSoundAt] = useState<number | null>(null);
+  const [lastPopupShownAt, setLastPopupShownAt] = useState<string | null>(null);
+  const [lastRealtimeEventName, setLastRealtimeEventName] = useState<string | null>(null);
   const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seenIds = useRef<Set<string>>(new Set());
   const adminChannelRef = useRef<Channel | null>(null);
   const preferencesRef = useRef<AdminNotificationPreferenceState>(preferences);
+  const incomingLeadsRef = useRef<IncomingLead[]>([]);
+  const lastLeadSoundAtRef = useRef<number | null>(null);
+  useEffect(() => { incomingLeadsRef.current = incomingLeads; }, [incomingLeads]);
+  useEffect(() => { lastLeadSoundAtRef.current = lastLeadSoundAt; }, [lastLeadSoundAt]);
+
+  // Sort once and pick the highest-priority NEW/VIEWED lead as the active popup.
+  const sortedLeads = useMemo<IncomingLead[]>(
+    () => sortIncomingLeads(incomingLeads),
+    [incomingLeads],
+  );
+  const activeLead = useMemo<IncomingLead | null>(() => {
+    for (const l of sortedLeads) {
+      if (l.status === 'NEW' || l.status === 'VIEWED') return l;
+    }
+    return null;
+  }, [sortedLeads]);
+  const queueCount = useMemo<number>(
+    () =>
+      sortedLeads.filter((l) => l.status === 'NEW' || l.status === 'VIEWED').length -
+      (activeLead ? 1 : 0),
+    [sortedLeads, activeLead],
+  );
+
+  // Existing popup contracts: derive IncomingCallInfo / EmergencyAssistInfo
+  // from the active lead. Components keep working unchanged.
+  const incomingCall = useMemo<IncomingCallInfo | null>(() => {
+    if (!activeLead || activeLead.type !== 'CALL_CLICK') return null;
+    const meta = activeLead.metadata ?? {};
+    const metaStr = (k: string): string | null => {
+      const v = meta[k];
+      return typeof v === 'string' && v.length > 0 ? v : null;
+    };
+    return {
+      callClickEventId: activeLead.callClickEventId ?? '',
+      phone: activeLead.phone ?? null,
+      customerName: activeLead.customerName ?? null,
+      tyreProblemType: activeLead.tyreProblemType ?? null,
+      jobType: (activeLead.jobType as 'ASSESSMENT' | 'REPLACEMENT' | undefined) ?? null,
+      sourcePage: activeLead.sourcePage ?? null,
+      sourceComponent: activeLead.sourceComponent ?? null,
+      networkCity: metaStr('networkCity'),
+      networkRegion: metaStr('networkRegion'),
+      networkCountry: metaStr('networkCountry'),
+      receivedAt: activeLead.createdAt,
+    };
+  }, [activeLead]);
+  const emergencyAssist = useMemo<EmergencyAssistInfo | null>(() => {
+    if (!activeLead || activeLead.type !== 'EMERGENCY_ASSIST') return null;
+    return {
+      eventId: activeLead.emergencyAssistEventId ?? '',
+      phone: activeLead.phone ?? null,
+      customerName: activeLead.customerName ?? null,
+      tyreProblemType: activeLead.tyreProblemType ?? null,
+      jobType: (activeLead.jobType as 'ASSESSMENT' | 'REPLACEMENT' | undefined) ?? null,
+      vehicleRegistration: activeLead.vehicleRegistration ?? null,
+      sourcePage: activeLead.sourcePage ?? null,
+      sourceComponent: activeLead.sourceComponent ?? null,
+      receivedAt: activeLead.createdAt,
+      locationLabel: activeLead.locationLabel ?? null,
+      latitude: activeLead.latitude ?? null,
+      longitude: activeLead.longitude ?? null,
+      locationConfidence:
+        (activeLead.locationConfidence as EmergencyLocationConfidence | undefined) ?? null,
+      locationUpdatedAt:
+        activeLead.lastSignalAt && activeLead.lastSignalAt !== activeLead.createdAt
+          ? activeLead.lastSignalAt
+          : null,
+    };
+  }, [activeLead]);
+
+  // Track when a popup becomes visible for diagnostics, and start the alert
+  // loop the moment a new active lead is shown. This is the authoritative
+  // sound trigger — running in an effect after commit guarantees the popup
+  // is on screen and avoids any race with the enqueue path.
+  const lastSoundedLeadIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!activeLead) {
+      lastSoundedLeadIdRef.current = null;
+      return;
+    }
+    setLastPopupShownAt(new Date().toISOString());
+    if (lastSoundedLeadIdRef.current === activeLead.id) return;
+    const shouldPlay = shouldPlayFullLeadSound({
+      lastLeadSoundAt: lastLeadSoundAtRef.current,
+      incomingLead: activeLead,
+      activeLead: null,
+      queueCount: incomingLeadsRef.current.length - 1,
+    });
+    if (!shouldPlay) return;
+    if (!preferencesRef.current.soundEnabled) return;
+    lastSoundedLeadIdRef.current = activeLead.id;
+    // Use the generic, known-good play-sound system. Distinct ringtone per
+    // lead type so the admin can tell call vs emergency apart instantly.
+    const key = activeLead.type === 'EMERGENCY_ASSIST' ? 'emergency_alert' : 'incoming_call';
+    void playSoundLoop(key);
+    const now = Date.now();
+    lastLeadSoundAtRef.current = now;
+    setLastLeadSoundAt(now);
+  }, [activeLead]);
+
+  // Enqueue helper: dedupe + push to queue. Sound is started by the
+  // activeLead effect above so the popup and sound stay in sync.
+  const enqueueLead = useCallback((lead: IncomingLead): void => {
+    setLastLeadReceivedAt(new Date().toISOString());
+    const currentLeads = incomingLeadsRef.current;
+    const result = dedupeIncomingLead(currentLeads, lead);
+    setIncomingLeads(result.leads);
+    incomingLeadsRef.current = result.leads;
+  }, []);
+
+  const transitionLead = useCallback(
+    (leadId: string, status: IncomingLeadStatus): void => {
+      setIncomingLeads((current) => {
+        const next = setLeadStatus(current, leadId, status);
+        if (status === 'HANDLED' || status === 'DISMISSED' || status === 'EXPIRED') {
+          const moving = next.find((l) => l.id === leadId);
+          if (moving) {
+            setIncomingLeadHistory((h) => [moving, ...h].slice(0, 100));
+            return next.filter((l) => l.id !== leadId);
+          }
+        }
+        return next;
+      });
+    },
+    [],
+  );
+
+  const markActiveLeadInProgress = useCallback((): void => {
+    const current = incomingLeadsRef.current;
+    const sorted = sortIncomingLeads(current);
+    const active = sorted.find((l) => l.status === 'NEW' || l.status === 'VIEWED');
+    if (!active) return;
+    transitionLead(active.id, 'IN_PROGRESS');
+  }, [transitionLead]);
+
+  const markLeadHandled = useCallback(
+    (leadId: string): void => {
+      transitionLead(leadId, 'HANDLED');
+    },
+    [transitionLead],
+  );
+
+  const dismissLead = useCallback(
+    (leadId: string): void => {
+      transitionLead(leadId, 'DISMISSED');
+    },
+    [transitionLead],
+  );
+
+  // Periodic expiry sweep — moves stale leads to history so they don't block popups.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const now = Date.now();
+      let any = false;
+      const current = incomingLeadsRef.current;
+      for (const l of current) {
+        if ((l.status === 'NEW' || l.status === 'VIEWED' || l.status === 'IN_PROGRESS') && isLeadExpired(l, now)) {
+          transitionLead(l.id, 'EXPIRED');
+          any = true;
+        }
+      }
+      if (any) {
+        // tick — state updates already handled inside transitionLead
+      }
+    }, 30000);
+    return (): void => clearInterval(id);
+  }, [transitionLead]);
 
   useEffect(() => {
     preferencesRef.current = preferences;
@@ -327,12 +529,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const dismissIncomingCall = useCallback((): void => {
-    setIncomingCall(null);
-  }, []);
+    // Map onto the unified queue: dismiss the active CALL_CLICK lead.
+    const sorted = sortIncomingLeads(incomingLeadsRef.current);
+    const active = sorted.find(
+      (l) => (l.status === 'NEW' || l.status === 'VIEWED') && l.type === 'CALL_CLICK',
+    );
+    if (active) transitionLead(active.id, 'DISMISSED');
+  }, [transitionLead]);
 
   const dismissEmergencyAssist = useCallback((): void => {
-    setEmergencyAssist(null);
-  }, []);
+    const sorted = sortIncomingLeads(incomingLeadsRef.current);
+    const active = sorted.find(
+      (l) => (l.status === 'NEW' || l.status === 'VIEWED') && l.type === 'EMERGENCY_ASSIST',
+    );
+    if (active) transitionLead(active.id, 'DISMISSED');
+  }, [transitionLead]);
 
   const dismissNewBooking = useCallback((): void => {
     setNewBooking(null);
@@ -357,7 +568,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         dismissTimer.current = null;
       }
       setBanner(next);
-      void playAdminAlertSoundIfAllowed({ enabled: prefs.soundEnabled });
+      setUiFeedbackEnabled(prefs.soundEnabled);
+      if (prefs.soundEnabled) {
+        void playSound('toast_info');
+      }
       if (!next.sticky) {
         dismissTimer.current = setTimeout(() => {
           setBanner(null);
@@ -495,10 +709,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setPreferences(DEFAULT_PREFS);
       setRegistration({ state: 'idle' });
       setBanner(null);
-      setIncomingCall(null);
-      setEmergencyAssist(null);
-      setQueuedEmergencyAssist(null);
       setNewBooking(null);
+      setIncomingLeads([]);
+      setIncomingLeadHistory([]);
+      setLastLeadReceivedAt(null);
+      setLastLeadSoundAt(null);
+      setLastPopupShownAt(null);
+      setLastRealtimeEventName(null);
     }
   }, [admin, refreshPreferences]);
 
@@ -509,6 +726,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     if (!ch) return undefined;
     adminChannelRef.current = ch;
     const handler = (event: { type: string; payload: Record<string, unknown>; createdAt?: string }): void => {
+      setLastRealtimeEventName(event.type);
       const tpl = templateForRealtime(event);
       if (!tpl) return;
       const banner = inAppBannerFromCategory(tpl.category, tpl.title, tpl.body);
@@ -533,105 +751,104 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       ch.bind(name, handler);
     }
 
-    // Special handler: an incoming customer call has been triggered by a
-    // tel: tap on the public site. Show a sticky popup so admin can start a
-    // quick booking immediately.
+    // Call Now: customer tapped a tel: link on the public site. Funnels into
+    // the unified incoming-leads queue so multiple call clicks never spawn
+    // overlapping popups.
     const callHandler = (event: {
       type: string;
       payload: Record<string, unknown>;
       createdAt?: string;
     }): void => {
+      setLastRealtimeEventName(event.type);
       const p = event.payload ?? {};
-      const info: IncomingCallInfo = {
-        callClickEventId: String(p['callClickEventId'] ?? ''),
-        phone: p['phone'] ? String(p['phone']) : null,
-        customerName: p['customerName'] ? String(p['customerName']) : null,
-        tyreProblemType: p['tyreProblemType'] ? String(p['tyreProblemType']) : null,
+      const eventId = String(p['callClickEventId'] ?? '');
+      if (!eventId) return;
+      const lead = createLeadFromCallClick({
+        callClickEventId: eventId,
+        phone: p['phone'] != null ? String(p['phone']) : null,
+        customerName: p['customerName'] != null ? String(p['customerName']) : null,
+        tyreProblemType:
+          p['tyreProblemType'] != null ? String(p['tyreProblemType']) : null,
         jobType: (p['jobType'] as 'ASSESSMENT' | 'REPLACEMENT' | undefined) ?? null,
-        sourcePage: p['sourcePage'] ? String(p['sourcePage']) : null,
-        sourceComponent: p['sourceComponent'] ? String(p['sourceComponent']) : null,
-        receivedAt: event.createdAt ?? new Date().toISOString(),
-      };
-      setIncomingCall(info);
-      void startAdminAlertLoopIfAllowed({
-        enabled: preferencesRef.current.soundEnabled,
+        sourcePage: p['sourcePage'] != null ? String(p['sourcePage']) : null,
+        sourceComponent:
+          p['sourceComponent'] != null ? String(p['sourceComponent']) : null,
+        networkCity: p['networkCity'] != null ? String(p['networkCity']) : null,
+        networkRegion: p['networkRegion'] != null ? String(p['networkRegion']) : null,
+        networkCountry: p['networkCountry'] != null ? String(p['networkCountry']) : null,
+        receivedAt: event.createdAt ?? null,
       });
+      enqueueLead(lead);
     };
     ch.bind('lead.call.clicked', callHandler);
 
-    // Emergency assist: build popup info, dedupe by eventId, queue if a
-    // call-click popup is currently open so the two never overlap.
+    // Emergency assist: customer pressed "I need help now". Routes through
+    // the unified queue with full dedupe by emergencyAssistEventId.
     const emergencyHandler = (event: {
       type: string;
       payload: Record<string, unknown>;
       createdAt?: string;
     }): void => {
+      setLastRealtimeEventName(event.type);
       const p = event.payload ?? {};
       const eventId = String(p['eventId'] ?? '');
       if (!eventId) return;
-      const info: EmergencyAssistInfo = {
+      const lead = createLeadFromEmergencyAssist({
         eventId,
-        phone: p['customerPhone'] ? String(p['customerPhone']) : null,
-        customerName: p['customerName'] ? String(p['customerName']) : null,
-        tyreProblemType: p['tyreProblemType'] ? String(p['tyreProblemType']) : null,
+        phone: p['customerPhone'] != null ? String(p['customerPhone']) : null,
+        customerName: p['customerName'] != null ? String(p['customerName']) : null,
+        tyreProblemType:
+          p['tyreProblemType'] != null ? String(p['tyreProblemType']) : null,
         jobType: (p['jobType'] as 'ASSESSMENT' | 'REPLACEMENT' | undefined) ?? null,
-        vehicleRegistration: p['vehicleRegistration']
-          ? String(p['vehicleRegistration'])
-          : null,
-        sourcePage: p['sourcePage'] ? String(p['sourcePage']) : null,
-        sourceComponent: p['sourceComponent'] ? String(p['sourceComponent']) : null,
-        receivedAt: event.createdAt ?? new Date().toISOString(),
-        locationLabel: p['locationLabel'] ? String(p['locationLabel']) : null,
+        vehicleRegistration:
+          p['vehicleRegistration'] != null ? String(p['vehicleRegistration']) : null,
+        sourcePage: p['sourcePage'] != null ? String(p['sourcePage']) : null,
+        sourceComponent:
+          p['sourceComponent'] != null ? String(p['sourceComponent']) : null,
+        locationLabel:
+          p['locationLabel'] != null ? String(p['locationLabel']) : null,
         latitude: typeof p['latitude'] === 'number' ? (p['latitude'] as number) : null,
         longitude: typeof p['longitude'] === 'number' ? (p['longitude'] as number) : null,
         locationConfidence:
-          (p['locationConfidence'] as EmergencyLocationConfidence | undefined) ?? null,
-        locationUpdatedAt: null,
-      };
-      // Dedupe: if same event already shown or queued, ignore.
-      setEmergencyAssist((current) => {
-        if (current && current.eventId === eventId) return current;
-        if (incomingCallRef.current) {
-          // Call popup occupying screen — queue and don't open emergency popup.
-          setQueuedEmergencyAssist((q) =>
-            q && q.eventId === eventId ? q : info,
-          );
-          return current;
-        }
-        return info;
+          p['locationConfidence'] != null ? String(p['locationConfidence']) : null,
+        receivedAt: event.createdAt ?? null,
       });
-      void playAdminAlertSoundIfAllowed({
-        enabled: preferencesRef.current.soundEnabled,
-      });
+      enqueueLead(lead);
     };
     ch.bind('emergency_assist.created', emergencyHandler);
 
-    // Emergency assist location update: merge into open popup or queued copy,
-    // never spawn a second popup.
+    // Emergency assist location update: merge into the existing lead in the
+    // queue. Never spawns a duplicate popup. Never plays the full sound.
     const emergencyLocationHandler = (event: {
       type: string;
       payload: Record<string, unknown>;
       createdAt?: string;
     }): void => {
+      setLastRealtimeEventName(event.type);
       const p = event.payload ?? {};
       const eventId = String(p['eventId'] ?? '');
       if (!eventId) return;
-      const patch = {
-        locationLabel: p['locationLabel'] ? String(p['locationLabel']) : null,
-        latitude:
-          typeof p['latitude'] === 'number' ? (p['latitude'] as number) : null,
-        longitude:
-          typeof p['longitude'] === 'number' ? (p['longitude'] as number) : null,
-        locationConfidence:
-          (p['locationConfidence'] as EmergencyLocationConfidence | undefined) ?? null,
-        locationUpdatedAt: event.createdAt ?? new Date().toISOString(),
-      };
-      setEmergencyAssist((current) =>
-        current && current.eventId === eventId ? { ...current, ...patch } : current,
-      );
-      setQueuedEmergencyAssist((q) =>
-        q && q.eventId === eventId ? { ...q, ...patch } : q,
-      );
+      const leadId = `ea-${eventId}`;
+      setIncomingLeads((current) => {
+        const idx = current.findIndex((l) => l.id === leadId);
+        if (idx < 0) return current;
+        const prev = current[idx];
+        if (!prev) return current;
+        const next = [...current];
+        next[idx] = mergeLocationIntoLead(prev, {
+          eventId,
+          locationLabel:
+            p['locationLabel'] != null ? String(p['locationLabel']) : null,
+          latitude:
+            typeof p['latitude'] === 'number' ? (p['latitude'] as number) : null,
+          longitude:
+            typeof p['longitude'] === 'number' ? (p['longitude'] as number) : null,
+          locationConfidence:
+            p['locationConfidence'] != null ? String(p['locationConfidence']) : null,
+          updatedAt: event.createdAt ?? new Date().toISOString(),
+        });
+        return next;
+      });
     };
     ch.bind('emergency_assist.location_updated', emergencyLocationHandler);
 
@@ -675,9 +892,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         quoteCreatedAt: p['quoteCreatedAt'] ? String(p['quoteCreatedAt']) : null,
       };
       setNewBooking((current) => (current && current.bookingId === bookingId ? current : info));
-      void playAdminAlertSoundIfAllowed({
-        enabled: preferencesRef.current.soundEnabled,
-      });
+      if (preferencesRef.current.soundEnabled) {
+        void playSound('new_booking');
+      }
     };
     ch.bind('booking.created', newBookingHandler);
 
@@ -696,17 +913,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       }
       adminChannelRef.current = null;
     };
-  }, [admin, showBanner]);
+  }, [admin, showBanner, enqueueLead]);
 
   // Foreground replay: if a call-click event was missed while the app was
   // backgrounded, fetch the most recent unhandled one on resume and surface
-  // it through the same incoming-call popup. Replayed events are tracked per
-  // session so the same id never triggers the popup twice after dismiss.
+  // it through the unified incoming-leads queue. Replayed events are tracked
+  // per session so the same id never triggers the popup twice.
   const replayedCallClickIds = useRef<Set<string>>(new Set());
-  const incomingCallRef = useRef<IncomingCallInfo | null>(incomingCall);
-  useEffect(() => {
-    incomingCallRef.current = incomingCall;
-  }, [incomingCall]);
 
   const replayLatestUnhandledCallClick = useCallback(async (): Promise<void> => {
     try {
@@ -714,10 +927,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       const latest = res.items[0];
       if (!latest) return;
       if (replayedCallClickIds.current.has(latest.id)) return;
-      if (incomingCallRef.current?.callClickEventId === latest.id) return;
-      if (incomingCallRef.current) return; // popup already showing
       replayedCallClickIds.current.add(latest.id);
-      const info: IncomingCallInfo = {
+      const lead = createLeadFromCallClick({
         callClickEventId: latest.id,
         phone: latest.phone ?? null,
         customerName: latest.customerName ?? null,
@@ -725,36 +936,24 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         jobType: latest.jobType ?? null,
         sourcePage: latest.sourcePage ?? null,
         sourceComponent: latest.sourceComponent ?? null,
+        networkCity: latest.networkCity ?? null,
+        networkRegion: latest.networkRegion ?? null,
+        networkCountry: latest.networkCountry ?? null,
         receivedAt: latest.createdAt,
-      };
-      setIncomingCall(info);
-      void startAdminAlertLoopIfAllowed({
-        enabled: preferencesRef.current.soundEnabled,
       });
+      enqueueLead(lead);
     } catch {
       // best effort
     }
-  }, []);
+  }, [enqueueLead]);
 
-  // Stop the looping alert as soon as the popup is dismissed/handled.
+  // Stop the looping alert as soon as no popup-bearing lead is active.
   useEffect(() => {
-    if (!incomingCall) {
-      void stopAdminAlertLoop();
+    if (!incomingCall && !emergencyAssist) {
+      void stopSound('incoming_call');
+      void stopSound('emergency_alert');
     }
-  }, [incomingCall]);
-
-  // Flush queued emergency assist popup once the call popup is dismissed and
-  // no emergency popup is currently shown.
-  useEffect(() => {
-    if (incomingCall) return;
-    if (emergencyAssist) return;
-    if (!queuedEmergencyAssist) return;
-    setEmergencyAssist(queuedEmergencyAssist);
-    setQueuedEmergencyAssist(null);
-    void playAdminAlertSoundIfAllowed({
-      enabled: preferencesRef.current.soundEnabled,
-    });
-  }, [incomingCall, emergencyAssist, queuedEmergencyAssist]);
+  }, [incomingCall, emergencyAssist]);
 
   useEffect(() => {
     if (!admin) return undefined;
@@ -789,6 +988,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       incomingCall,
       emergencyAssist,
       newBooking,
+      incomingLeads: sortedLeads,
+      incomingLeadHistory,
+      activeLead,
+      queueCount,
+      lastLeadReceivedAt,
+      lastLeadSoundAt,
+      lastPopupShownAt,
+      lastRealtimeEventName,
       refreshPermission,
       requestPermission,
       registerDevice,
@@ -800,6 +1007,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       dismissIncomingCall,
       dismissEmergencyAssist,
       dismissNewBooking,
+      markActiveLeadInProgress,
+      markLeadHandled,
+      dismissLead,
       unregisterCurrentDevice,
     }),
     [
@@ -812,6 +1022,14 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       incomingCall,
       emergencyAssist,
       newBooking,
+      sortedLeads,
+      incomingLeadHistory,
+      activeLead,
+      queueCount,
+      lastLeadReceivedAt,
+      lastLeadSoundAt,
+      lastPopupShownAt,
+      lastRealtimeEventName,
       refreshPermission,
       requestPermission,
       registerDevice,
@@ -823,6 +1041,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       dismissIncomingCall,
       dismissEmergencyAssist,
       dismissNewBooking,
+      markActiveLeadInProgress,
+      markLeadHandled,
+      dismissLead,
       unregisterCurrentDevice,
     ],
   );

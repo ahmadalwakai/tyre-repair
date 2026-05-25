@@ -9,6 +9,7 @@ import {
   type BookingStatusUpdatedPayload,
 } from '@tyrerepair/realtime';
 import { adminAuthErrorResponse, requireAdmin } from '@/lib/admin/auth';
+import { permissionErrorResponse, requirePermission } from '@/lib/admin/permissions';
 import { writeAuditLogSafe, type AuditAction } from '@/lib/audit/audit-log';
 import { safeSendAdminNotification } from '@/lib/notifications/send-admin-notification';
 import { sendBookingCancellationEmail } from '@/lib/email/booking-cancellation';
@@ -71,6 +72,15 @@ export async function POST(
   } catch (err) {
     const { status, body } = adminAuthErrorResponse(err);
     return NextResponse.json(body, { status });
+  }
+
+  // Admin Stability & Field Operations Pack — Part 4: role gating.
+  try {
+    requirePermission(admin, 'booking.cancel');
+  } catch (err) {
+    const res = permissionErrorResponse(err);
+    if (res) return res;
+    throw err;
   }
 
   const { bookingId } = await context.params;

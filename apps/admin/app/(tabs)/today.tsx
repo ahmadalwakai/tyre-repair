@@ -9,6 +9,10 @@ import { ErrorState, LoadingState } from '@/components/ui/States';
 import { OfflineBanner } from '@/components/system/OfflineBanner';
 import { NextBestActionCard } from '@/components/system/NextBestActionCard';
 import { PricingTodayCard } from '@/components/finance/PricingTodayCard';
+import { ShortcutTiles } from '@/components/system/ShortcutTiles';
+import { DemandNowCard } from '@/components/system/DemandNowCard';
+import { IncomingLeadsTodayCard } from '@/components/system/IncomingLeadsTodayCard';
+import { ExportCsvButton } from '@/components/reports/ExportCsvButton';
 import { getToday } from '@/lib/api/today';
 import type { TodaySummary } from '@/types/command-center';
 import { ApiError } from '@/lib/api/client';
@@ -57,7 +61,7 @@ export default function TodayScreen(): React.JSX.Element {
         <ErrorState message={error} onRetry={load} />
       ) : !data ? null : (
         <ScrollView
-          contentContainerStyle={{ padding: 12 }}
+          contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -79,6 +83,12 @@ export default function TodayScreen(): React.JSX.Element {
             />
           </View>
 
+          <ShortcutTiles />
+
+          <IncomingLeadsTodayCard />
+
+          <DemandNowCard summary={data} />
+
           <AnimatedCard delay={0}>
             <NextBestActionCard action={data.nextBestAction ?? null} />
           </AnimatedCard>
@@ -96,6 +106,20 @@ export default function TodayScreen(): React.JSX.Element {
             </View>
           </GoldCard>
           </AnimatedCard>
+
+          {(data.bookingsToday.buyTyres ?? 0) > 0 ||
+          (data.bookingsToday.emergency ?? 0) > 0 ? (
+            <AnimatedCard delay={60}>
+              <GoldCard className="mb-3" tone="gold" icon="🛒" title="Buy Tyres today">
+                <View className="flex-row flex-wrap -mx-1">
+                  <Stat label="Buy Tyres orders" value={data.bookingsToday.buyTyres ?? 0} />
+                  <Stat label="Emergency" value={data.bookingsToday.emergency ?? 0} />
+                  <Stat label="Paid today" value={data.bookingsToday.buyTyresPaid ?? 0} />
+                  <Stat label="Special orders" value={data.bookingsToday.buyTyresBackorders ?? 0} />
+                </View>
+              </GoldCard>
+            </AnimatedCard>
+          ) : null}
 
           <AnimatedCard delay={80}>
           <GoldCard className="mb-3" tone="success" icon="£" title="Cash today">
@@ -190,6 +214,10 @@ export default function TodayScreen(): React.JSX.Element {
             </GoldCard>
             </AnimatedCard>
           ) : null}
+
+          <View className="mt-2 mb-6 flex-row justify-end">
+            <ExportCsvButton kind="today" label="Export today (CSV)" />
+          </View>
         </ScrollView>
       )}
     </AppShell>

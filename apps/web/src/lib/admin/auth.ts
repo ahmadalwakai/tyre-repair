@@ -1,7 +1,7 @@
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import { db, schema, eq } from '@tyrerepair/db';
 
-export type AdminRole = 'owner' | 'admin';
+export type AdminRole = 'owner' | 'admin' | 'dispatcher' | 'operator' | 'viewer';
 
 export interface AdminAuthContext {
   adminId: string;
@@ -68,7 +68,13 @@ interface DecodedAdminPayload {
 }
 
 function isAdminRole(value: unknown): value is AdminRole {
-  return value === 'owner' || value === 'admin';
+  return (
+    value === 'owner' ||
+    value === 'admin' ||
+    value === 'dispatcher' ||
+    value === 'operator' ||
+    value === 'viewer'
+  );
 }
 
 function decodePayload(payload: JWTPayload): DecodedAdminPayload {

@@ -23,6 +23,10 @@ export type PaymentStatus =
 
 export type LockingWheelNutStatus = 'HAVE_KEY' | 'NO_KEY' | 'STANDARD_ONLY';
 
+export type FittingMethod = 'GARAGE' | 'HOME';
+
+export type CheckoutPaymentMode = 'FULL' | 'DEPOSIT';
+
 export type QuoteJobType = 'ASSESSMENT' | 'REPLACEMENT';
 
 export type TyreProblemType =
@@ -50,6 +54,18 @@ export interface BookingListItem {
   jobType: QuoteJobType;
   tyreProblemType: TyreProblemType | null;
   assessmentFeeGbp: string | null;
+  /* Buy Tyres scheduled-fitting fields (null/undefined for emergency rows). */
+  source?: string | null;
+  fittingMethod?: FittingMethod | null;
+  quantity?: number | null;
+  scheduledAt?: string | null;
+  slotLabel?: string | null;
+  isBackorder?: boolean | null;
+  backorderEtaDays?: number | null;
+  fittingFeeGbp?: string | null;
+  distanceFeeGbp?: string | null;
+  checkoutPaymentMode?: CheckoutPaymentMode | null;
+  stockDecrementedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -93,6 +109,17 @@ export interface BookingDetail {
     tyreProblemType: TyreProblemType | null;
     assessmentFeeGbp: string | null;
     source?: string | null;
+    /* Buy Tyres scheduled-fitting fields (null for emergency bookings). */
+    fittingMethod?: FittingMethod | null;
+    quantity?: number | null;
+    scheduledAt?: string | null;
+    slotLabel?: string | null;
+    isBackorder?: boolean | null;
+    backorderEtaDays?: number | null;
+    fittingFeeGbp?: string | null;
+    distanceFeeGbp?: string | null;
+    checkoutPaymentMode?: CheckoutPaymentMode | null;
+    stockDecrementedAt?: string | null;
   };
   customer: { name: string | null; phone: string | null; email: string | null };
   location: {
@@ -102,7 +129,19 @@ export interface BookingDetail {
     latitude: number | null;
     longitude: number | null;
   } | null;
-  tyre: { tyreId: string; brand: string; model: string; sizeLabel: string; sku: string } | null;
+  tyre: {
+    tyreId: string;
+    brand: string;
+    model: string;
+    sizeLabel: string;
+    sku: string;
+    basePriceGbp?: string | null;
+    stock?: {
+      quantityAvailable: number;
+      reservedQuantity: number;
+      lowStockThreshold: number;
+    } | null;
+  } | null;
   backupTyre: { tyreId: string; brand: string; model: string; sizeLabel: string } | null;
   quote: {
     quoteId: string;

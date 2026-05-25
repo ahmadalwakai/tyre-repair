@@ -122,7 +122,7 @@ export default function FinanceHubScreen(): React.JSX.Element {
       <OfflineBanner />
       <ScreenHeader title="Finance" subtitle="Money in, money owed, daily close" />
       <ScrollView
-        contentContainerStyle={{ padding: 12 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

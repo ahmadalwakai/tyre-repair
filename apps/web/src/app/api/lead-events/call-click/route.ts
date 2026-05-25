@@ -17,6 +17,14 @@ const tyreProblemTypes = [
   'NOT_SURE',
 ] as const;
 
+function safeDecode(v: string): string {
+  try {
+    return decodeURIComponent(v);
+  } catch {
+    return v;
+  }
+}
+
 const callClickSchema = z.object({
   sessionId: z.string().max(160).optional(),
   sourcePage: z.string().max(240).optional(),
@@ -46,6 +54,21 @@ export async function POST(req: Request): Promise<NextResponse> {
   const data = parsed.data;
   const userAgent = req.headers.get('user-agent') ?? null;
 
+  // Approximate caller location from the edge (Vercel injects these headers).
+  // City-level only, no lat/lng — UK ICO/GDPR legitimate-interest basis for
+  // operational use on the admin popup.
+  const networkCountry =
+    req.headers.get('x-vercel-ip-country') ?? req.headers.get('cf-ipcountry') ?? null;
+  const networkRegion =
+    req.headers.get('x-vercel-ip-country-region') ??
+    req.headers.get('x-vercel-ip-region') ??
+    null;
+  const networkCityRaw =
+    req.headers.get('x-vercel-ip-city') ?? req.headers.get('cf-ipcity') ?? null;
+  // Vercel URL-encodes the city header (e.g. "Glasgow" or "London" stays plain,
+  // but multi-word cities like "New%20York" need decoding).
+  const networkCity = networkCityRaw ? safeDecode(networkCityRaw) : null;
+
   try {
     const inserted = await db
       .insert(schema.callClickEvents)
@@ -61,6 +84,9 @@ export async function POST(req: Request): Promise<NextResponse> {
         jobType: data.jobType ?? null,
         locationSummary: data.locationSummary ?? null,
         userAgent,
+        networkCountry,
+        networkRegion,
+        networkCity,
         href: data.href ?? null,
         referrer: data.referrer ?? null,
       })
@@ -81,6 +107,9 @@ export async function POST(req: Request): Promise<NextResponse> {
       customerName: data.customerName ?? null,
       tyreProblemType: data.tyreProblemType ?? null,
       jobType: data.jobType ?? null,
+      networkCity,
+      networkRegion,
+      networkCountry,
       createdAt: row.createdAt.toISOString(),
     };
 

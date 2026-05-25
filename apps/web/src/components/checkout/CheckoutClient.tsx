@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Box,
   Button,
@@ -98,15 +99,26 @@ export function CheckoutClient(props: CheckoutClientProps) {
 }
 
 function CollectStage({ quote, paymentMode, onPaymentModeChange, onClientSecret }: CollectModeProps) {
+  const router = useRouter();
   const [form, setForm] = useState<CustomerForm>({ name: '', phone: '', email: '' });
-  // Intentionally null — the customer must explicitly pick one of the three
-  // options. There is no safe default for locking wheel nuts.
-  const [lockingNutStatus, setLockingNutStatus] =
-    useState<LockingWheelNutStatus | null>(null);
+  // Pre-fill from the server-loaded quote record. Customer can still change
+  // their answer via the radio group below, in which case the latest local
+  // value wins when posting to /api/checkout/session.
+  const [lockingNutStatus, setLockingNutStatus] = useState<LockingWheelNutStatus | null>(
+    quote.lockingWheelNutStatus,
+  );
   const [acceptedDepositTerms, setAcceptedDepositTerms] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Phase 10 defensive guard: a REPLACEMENT quote with no tyre means the
+  // upstream flow was not completed. Send the user back to /quote.
+  useEffect(() => {
+    if (quote.jobType === 'REPLACEMENT' && !quote.tyre) {
+      router.replace('/quote');
+    }
+  }, [quote.jobType, quote.tyre, router]);
 
   // Fire a transient "customer has reached checkout" signal once per mount
   // so the admin gets an early heads-up banner. Best-effort — never blocks UI.

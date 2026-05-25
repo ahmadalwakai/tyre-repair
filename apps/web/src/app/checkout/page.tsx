@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import { Box, Container, Heading, Stack, Text } from '@chakra-ui/react';
+import { redirect } from 'next/navigation';
+import { Box, Container } from '@chakra-ui/react';
 import { SiteHeader } from '@/components/layout/SiteHeader';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { FloatingActions } from '@/components/floating/FloatingActions';
-import { GoldButton } from '@/components/ui/GoldButton';
 import { CheckoutShell } from '@/components/checkout/CheckoutShell';
 import { db, schema, eq, alias } from '@tyrerepair/db';
 import { availabilityFromQuantity } from '@/lib/quote/tyres';
@@ -68,6 +68,18 @@ async function loadCheckoutSummary(quoteId: string): Promise<CheckoutQuoteSummar
       : {};
   const distanceFeeGbp = readString(pb['distanceFeeGbp']) ?? '0.00';
 
+  // Recover the customer's locking-nut answer that was stashed at quote
+  // creation. Falls back to null when the quote pre-dates this feature or
+  // the customer skipped the question (legacy ASSESSMENT path).
+  let lockingWheelNutStatus: CheckoutQuoteSummary['lockingWheelNutStatus'] = null;
+  const cs = pb['_customerSelections'];
+  if (cs && typeof cs === 'object') {
+    const v = (cs as Record<string, unknown>)['lockingWheelNutStatus'];
+    if (v === 'HAVE_KEY' || v === 'NO_KEY' || v === 'STANDARD_ONLY') {
+      lockingWheelNutStatus = v;
+    }
+  }
+
   const tyre =
     jobType === 'REPLACEMENT' && r.brand && r.model && r.sizeLabel
       ? {
@@ -106,6 +118,7 @@ async function loadCheckoutSummary(quoteId: string): Promise<CheckoutQuoteSummar
     availability,
     isSpecialOrder: availability === 'special_order',
     expiresAt: r.expiresAt ? r.expiresAt.toISOString() : null,
+    lockingWheelNutStatus,
   };
 }
 
@@ -115,38 +128,19 @@ function readString(v: unknown): string | null {
   return null;
 }
 
-function NotFound() {
-  return (
-    <>
-      <SiteHeader />
-      <Box as="main" py="16" bg="bg.canvas">
-        <Container maxW="lg">
-          <Stack gap="4">
-            <Heading as="h1" color="accent.neon" fontFamily="heading">
-              Quote not found
-            </Heading>
-            <Text color="fg.muted">
-              We couldn&apos;t find that quote. It may have expired. Please start a new
-              emergency quote.
-            </Text>
-            <GoldButton href="/quote" variant="solid">
-              Start new quote
-            </GoldButton>
-          </Stack>
-        </Container>
-      </Box>
-      <SiteFooter />
-      <FloatingActions />
-    </>
-  );
-}
-
 export default async function CheckoutPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const quoteId = typeof params.quoteId === 'string' ? params.quoteId.trim() : '';
-  if (!quoteId) return <NotFound />;
+  // Phase 10: hard-redirect to /quote if quoteId is missing.
+  if (!quoteId) {
+    redirect('/quote');
+  }
   const quote = await loadCheckoutSummary(quoteId);
-  if (!quote) return <NotFound />;
+  // Phase 10: if the quote can't be loaded (expired, deleted, malformed),
+  // send the user back to start a fresh quote with an explicit flag.
+  if (!quote) {
+    redirect('/quote?expired=1');
+  }
 
   return (
     <>

@@ -16,6 +16,7 @@ import {
 } from '@/context/NotificationProvider';
 import { WORKSHOP } from '@/lib/workshop';
 import { AdminButton } from '@/components/ui/AdminButton';
+import { useToast } from '@/components/ui/Toast';
 import { colors } from '@/theme/colors';
 import {
   buildNavigationUrl,
@@ -204,10 +205,24 @@ function PopupBody({
 
   const displayAddress = info.locationLabel ?? geocoded?.formatted ?? null;
   const displayPostcode = info.postcode ?? geocoded?.postcode ?? null;
+  // Loading state for the primary navigation button. Always reset in finally
+  // so the popup is never permanently locked if router.push fails.
+  const [busyOpen, setBusyOpen] = useState(false);
+  const toast = useToast();
 
   function openBookings(): void {
-    onDismiss();
-    router.push('/bookings');
+    if (busyOpen) return;
+    setBusyOpen(true);
+    try {
+      onDismiss();
+      router.push('/bookings');
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn('[NewBookingPopup] open bookings failed', err);
+      toast.error('Could not open Bookings.');
+    } finally {
+      setBusyOpen(false);
+    }
   }
 
   function callCustomer(): void {
@@ -248,7 +263,9 @@ function PopupBody({
           backgroundColor: 'rgba(0,0,0,0.7)',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: 16,
+          paddingHorizontal: 16,
+          paddingTop: 28,
+          paddingBottom: 32,
         }}
       >
         <View style={{ width: '100%', maxWidth: 460, position: 'relative' }}>
@@ -281,7 +298,7 @@ function PopupBody({
               maxHeight: '92%',
             }}
           >
-            <ScrollView contentContainerStyle={{ padding: 20 }}>
+            <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 28 }}>
               <View
                 style={{
                   flexDirection: 'row',
@@ -416,6 +433,8 @@ function PopupBody({
               <View style={{ gap: 10 }}>
                 <AdminButton
                   label="Open Bookings"
+                  loadingLabel="Opening…"
+                  loading={busyOpen}
                   variant="primary"
                   size="lg"
                   fullWidth

@@ -1,382 +1,260 @@
 'use client';
-import { useEffect, useReducer, useState } from 'react';
-import { Stack, Text } from '@chakra-ui/react';
+import { useEffect, useReducer, useRef, useState } from 'react';
+import { Stack } from '@chakra-ui/react';
 import { QuoteShell } from './QuoteShell';
 import { QuoteProgress } from './QuoteProgress';
-import { VehicleLookupStep } from './VehicleLookupStep';
-import { TyreSelectionStep, type TyreTriageResult } from './TyreSelectionStep';
 import { LocationCaptureStep } from './LocationCaptureStep';
+import { TyreSelectionStep, type TyrePayload } from './TyreSelectionStep';
 import { QuoteDisplayStep } from './QuoteDisplayStep';
-import { EmergencyAssistCard } from './EmergencyAssistCard';
-import { CallBackRescueCard } from './CallBackRescueCard';
-import { SaveProgressCard } from './SaveProgressCard';
 import { RestoreQuotePrompt } from './RestoreQuotePrompt';
-import { QuoteExitIntentPrompt } from './QuoteExitIntentPrompt';
 import { StickyQuoteActions } from './StickyQuoteActions';
+import { MiniProgressBubble } from '@/components/mobile/MiniProgressBubble';
+import {
+  QUOTE_STEPS,
+  STEP_META,
+  canEnterStep,
+  earliestIncompleteStep,
+  isValidStep,
+  type QuoteStep,
+} from '@/lib/quote/steps';
 import {
   clearQuoteProgress,
+  loadQuoteProgress,
   saveQuoteProgress,
+  type PersistedTyre,
   type QuoteProgressSnapshot,
 } from '@/lib/quote/progress-storage';
-import type {
-  CapturedLocation,
-  QuoteFlowStep,
-  VehicleSelection,
-} from '@/types/quote';
+import type { AddressData } from '@/types/quote';
+import type { LockingWheelNutStatus } from '@/lib/bookings/types';
 
-type EmergencyLocationConfidence =
-  | 'CONFIRMED_ADDRESS'
-  | 'GPS_ONLY'
-  | 'WEAK_ADDRESS'
-  | 'MISSING_LOCATION';
-
-function deriveLocationLabel(loc: CapturedLocation): string | null {
-  const parts = [loc.addressLine1, loc.addressLine2, loc.city, loc.postcode].filter(
-    (s): s is string => typeof s === 'string' && s.trim().length > 0,
-  );
-  return parts.length > 0 ? parts.join(', ') : null;
-}
-
-function deriveLocationConfidence(loc: CapturedLocation): EmergencyLocationConfidence {
-  const hasCoords = typeof loc.latitude === 'number' && typeof loc.longitude === 'number';
-  const hasAddress = Boolean(loc.addressLine1 || loc.postcode || loc.city);
-  if (hasCoords && hasAddress) return 'CONFIRMED_ADDRESS';
-  if (hasCoords) return 'GPS_ONLY';
-  if (hasAddress) return 'WEAK_ADDRESS';
-  return 'MISSING_LOCATION';
-}
-
-async function patchEmergencyAssistLocation(
-  eventId: string,
-  loc: CapturedLocation,
-): Promise<boolean> {
-  try {
-    const body: Record<string, unknown> = {
-      locationConfidence: deriveLocationConfidence(loc),
-    };
-    const label = deriveLocationLabel(loc);
-    if (label) body['locationLabel'] = label;
-    if (typeof loc.latitude === 'number') body['latitude'] = loc.latitude;
-    if (typeof loc.longitude === 'number') body['longitude'] = loc.longitude;
-    const res = await fetch(
-      `/api/lead-events/emergency-assist/${encodeURIComponent(eventId)}/location`,
-      {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(body),
-      },
-    );
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-interface State {
-  step: QuoteFlowStep;
-  vehicle: VehicleSelection | null;
-  triage: TyreTriageResult | null;
-  location: CapturedLocation | null;
-  isEmergencyAssistMode: boolean;
-  /** Returned from POST /api/lead-events/emergency-assist; used to PATCH the
-   * same lead with location once it is captured. */
-  emergencyAssistEventId: string | null;
-  /** When true, show a small acknowledgement on the next location/quote step
-   * confirming the customer's location has been forwarded to admin. */
-  emergencyLocationSent: boolean;
+interface FlowState {
+  step: QuoteStep;
+  address: AddressData | null;
+  tyre: {
+    size: string | null;
+    selected: TyrePayload['selected'] | null;
+    lockingWheelNutStatus: LockingWheelNutStatus | null;
+  };
 }
 
 type Action =
-  | { type: 'set_vehicle'; vehicle: VehicleSelection }
-  | { type: 'set_triage'; triage: TyreTriageResult }
-  | { type: 'set_location'; location: CapturedLocation }
-  | { type: 'go_to'; step: QuoteFlowStep }
-  | { type: 'enable_emergency_mode' }
-  | { type: 'disable_emergency_mode' }
-  | { type: 'emergency_continue_to_location' }
-  | { type: 'set_emergency_event_id'; eventId: string }
-  | { type: 'mark_emergency_location_sent' }
-  | { type: 'restore'; snapshot: Partial<State> & { step: QuoteFlowStep } };
+  | { type: 'set_address'; address: AddressData }
+  | { type: 'set_tyre'; payload: TyrePayload }
+  | { type: 'goto_step'; step: QuoteStep }
+  | { type: 'restore'; state: FlowState };
 
-const initialState: State = {
-  step: 'vehicle',
-  vehicle: null,
-  triage: null,
-  location: null,
-  isEmergencyAssistMode: false,
-  emergencyAssistEventId: null,
-  emergencyLocationSent: false,
+const INITIAL_STATE: FlowState = {
+  step: 'address',
+  address: null,
+  tyre: { size: null, selected: null, lockingWheelNutStatus: null },
 };
 
-function reducer(state: State, action: Action): State {
+function reducer(state: FlowState, action: Action): FlowState {
   switch (action.type) {
-    case 'set_vehicle': {
-      // In emergency mode, auto-triage and skip the tyre step.
-      if (state.isEmergencyAssistMode) {
-        return {
-          ...state,
-          vehicle: action.vehicle,
-          triage: {
-            jobType: 'ASSESSMENT',
-            tyreProblemType: 'NOT_SURE',
-            selectedTyre: null,
-            backupTyre: null,
-          },
-          step: 'location',
-        };
+    case 'set_address':
+      return { ...state, address: action.address, step: 'tyre' };
+    case 'set_tyre': {
+      const { size, selected, lockingWheelNutStatus } = action.payload;
+      return {
+        ...state,
+        tyre: { size, selected, lockingWheelNutStatus },
+        step: 'quote',
+      };
+    }
+    case 'goto_step': {
+      // Strict guard — never let the user jump to a step whose prereqs are
+      // not met. Snap back to the earliest incomplete step instead.
+      if (canEnterStep(action.step, state)) {
+        return { ...state, step: action.step };
       }
-      return { ...state, vehicle: action.vehicle, step: 'tyre' };
+      return { ...state, step: earliestIncompleteStep(state) };
     }
-    case 'set_triage':
-      return { ...state, triage: action.triage, step: 'location' };
-    case 'set_location':
-      return { ...state, location: action.location, step: 'quote' };
-    case 'go_to':
-      return { ...state, step: action.step };
-    case 'enable_emergency_mode':
-      return { ...state, isEmergencyAssistMode: true };
-    case 'disable_emergency_mode': {
-      // Clear an auto-created assessment triage if it was created only for
-      // emergency mode (no manually selected tyre). Preserve manually entered
-      // vehicle and location data.
-      const isAutoTriage =
-        state.triage?.jobType === 'ASSESSMENT' &&
-        state.triage?.tyreProblemType === 'NOT_SURE' &&
-        !state.triage?.selectedTyre &&
-        !state.triage?.backupTyre;
-      return {
-        ...state,
-        isEmergencyAssistMode: false,
-        emergencyAssistEventId: null,
-        emergencyLocationSent: false,
-        triage: isAutoTriage ? null : state.triage,
-      };
-    }
-    case 'emergency_continue_to_location': {
-      const existing = state.triage;
-      return {
-        ...state,
-        isEmergencyAssistMode: true,
-        triage: {
-          jobType: 'ASSESSMENT',
-          tyreProblemType: existing?.tyreProblemType ?? 'NOT_SURE',
-          selectedTyre: null,
-          backupTyre: null,
-        },
-        step: 'location',
-      };
-    }
-    case 'set_emergency_event_id':
-      return { ...state, emergencyAssistEventId: action.eventId };
-    case 'mark_emergency_location_sent':
-      return { ...state, emergencyLocationSent: true };
     case 'restore':
-      return { ...state, ...action.snapshot };
+      return action.state;
   }
 }
 
-export function QuoteFlow() {
-  const [state, dispatch] = useReducer(reducer, initialState);
-  const [showRescue, setShowRescue] = useState(false);
+function buildPersistedTyre(
+  state: FlowState,
+): PersistedTyre {
+  return {
+    size: state.tyre.size,
+    selected: state.tyre.selected
+      ? {
+          id: state.tyre.selected.id,
+          brand: state.tyre.selected.brand,
+          model: state.tyre.selected.model,
+          price: state.tyre.selected.price,
+        }
+      : null,
+    lockingWheelNutStatus: state.tyre.lockingWheelNutStatus,
+  };
+}
 
-  // Auto-save quote progress whenever core state changes.
+/**
+ * Orchestrates the 3-step customer quote flow:
+ *   address → tyre → quote (review) → /checkout
+ *
+ * Step config, guards, and prereq logic all come from `@/lib/quote/steps`.
+ */
+export function QuoteFlow() {
+  const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+  // The detected-but-not-yet-applied snapshot. Null means either no saved
+  // progress, the saved progress is too thin to be useful, or the user has
+  // already chosen to resume/discard.
+  const [pendingResume, setPendingResume] = useState<QuoteProgressSnapshot | null>(
+    null,
+  );
+  const checkedStorageRef = useRef(false);
+  // Suppress saving until the user has explicitly resumed or dismissed the
+  // prompt — otherwise the very first reducer state would overwrite the
+  // snapshot we're trying to offer.
+  const persistEnabledRef = useRef(true);
+
+  // On mount, look for a v2 snapshot. We only offer to resume if the user
+  // got at least past the address step — otherwise there's nothing useful
+  // to restore. TTL/version checks live inside loadQuoteProgress().
   useEffect(() => {
+    if (checkedStorageRef.current) return;
+    checkedStorageRef.current = true;
+    const snapshot = loadQuoteProgress();
+    if (!snapshot || !snapshot.address) {
+      return;
+    }
+    persistEnabledRef.current = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPendingResume(snapshot);
+  }, []);
+
+  // Persist progress whenever meaningful state changes — but only after
+  // the user has resolved any pending resume prompt.
+  useEffect(() => {
+    if (!persistEnabledRef.current) return;
     if (
-      state.step === 'vehicle' &&
-      !state.vehicle &&
-      !state.triage &&
-      !state.location &&
-      !state.isEmergencyAssistMode
+      state.step === 'address' &&
+      !state.address &&
+      !state.tyre.selected
     ) {
-      // Nothing meaningful to persist yet.
+      // Nothing meaningful yet.
       return;
     }
     saveQuoteProgress({
-      vehicle: state.vehicle
-        ? {
-            registration: state.vehicle.registration ?? null,
-            make: state.vehicle.make ?? null,
-            model: state.vehicle.model ?? null,
-            year: state.vehicle.year ?? null,
-            manualTyreSize: state.vehicle.manualTyreSize ?? null,
-          }
-        : null,
-      tyreProblemType: state.triage?.tyreProblemType ?? null,
-      jobType: state.triage?.jobType ?? null,
-      selectedTyreId: state.triage?.selectedTyre?.tyreId ?? null,
-      backupTyreId: state.triage?.backupTyre?.tyreId ?? null,
-      location: state.location,
-      isEmergencyAssistMode: state.isEmergencyAssistMode,
-      emergencyAssistEventId: state.emergencyAssistEventId,
+      step: state.step,
+      address: state.address,
+      tyre: buildPersistedTyre(state),
     });
   }, [state]);
 
-  const titleByStep: Record<QuoteFlowStep, { title: string; description?: string }> = {
-    vehicle: {
-      title: 'Get your instant emergency tyre quote',
-      description:
-        'Step 1 of 4 — Tell us your vehicle so we can find the right tyres. We never ask for a date or time.',
-    },
-    tyre: {
-      title: 'Tell us about the tyre',
-      description:
-        'Step 2 of 4 — Let us know what happened. We will repair if possible and only replace if needed.',
-    },
-    location: {
-      title: 'Where do you need help?',
-      description:
-        'Step 3 of 4 — Use your current location or enter the address where the mobile tyre fitter should come.',
-    },
-    quote: {
-      title: 'Your emergency quote',
-      description: 'Step 4 of 4 — Review the price and continue when ready.',
-    },
-  };
+  function handleResume() {
+    const snapshot = pendingResume;
+    if (!snapshot) return;
+    const guardState = {
+      address: snapshot.address,
+      tyre: {
+        size: snapshot.tyre.size,
+        selected: snapshot.tyre.selected ? { tyreId: snapshot.tyre.selected.id } : null,
+        lockingWheelNutStatus: snapshot.tyre.lockingWheelNutStatus,
+      },
+    };
+    const requestedStep = isValidStep(snapshot.step) ? snapshot.step : 'address';
+    const safeStep = canEnterStep(requestedStep, guardState)
+      ? requestedStep
+      : earliestIncompleteStep(guardState);
+    dispatch({
+      type: 'restore',
+      state: {
+        step: safeStep,
+        address: snapshot.address,
+        tyre: {
+          size: snapshot.tyre.size,
+          // Force a tyre re-selection so we re-validate live stock
+          // before charging.
+          selected: null,
+          lockingWheelNutStatus: snapshot.tyre.lockingWheelNutStatus,
+        },
+      },
+    });
+    persistEnabledRef.current = true;
+    setPendingResume(null);
+  }
 
-  const stepCaption: Record<QuoteFlowStep, string> = {
-    vehicle: 'Step 1 of 4',
-    tyre: 'Step 2 of 4',
-    location: 'Step 3 of 4',
-    quote: 'Step 4 of 4',
-  };
+  function handleDiscard() {
+    clearQuoteProgress();
+    persistEnabledRef.current = true;
+    setPendingResume(null);
+    // Reducer is already at INITIAL_STATE; nothing else to reset.
+  }
 
-  const sourcePage = `quote.${state.step}`;
-  const exitDisabled = state.step === 'quote';
+  const meta = STEP_META[state.step];
+  const stepIndex = QUOTE_STEPS.indexOf(state.step);
+  const stepCaption = `Step ${stepIndex + 1} of ${QUOTE_STEPS.length}`;
 
   return (
-    <QuoteShell
-      title={titleByStep[state.step].title}
-      {...(titleByStep[state.step].description
-        ? { description: titleByStep[state.step].description }
-        : {})}
-    >
+    <QuoteShell title={meta.title} description={meta.caption}>
       <Stack gap="6" pb={{ base: '24', md: '0' }}>
+        {pendingResume && (
+          <RestoreQuotePrompt
+            onResume={handleResume}
+            onDiscard={handleDiscard}
+            savedAt={new Date(pendingResume.updatedAt)}
+          />
+        )}
         <QuoteProgress current={state.step} />
 
-        {state.isEmergencyAssistMode && state.emergencyLocationSent && state.step === 'quote' && (
-          <Stack
-            gap="1"
-            p={{ base: '3', md: '4' }}
-            borderRadius="md"
-            borderWidth="1px"
-            borderColor="border.gold"
-            bg="bg.surface"
-          >
-            <Text fontFamily="heading" color="accent.neon" fontSize="sm">
-              Location received
-            </Text>
-            <Text color="fg.muted" fontSize="xs">
-              We&apos;ve updated your emergency request. Continue to your quote so we can price the
-              emergency callout.
-            </Text>
-          </Stack>
-        )}
-
-        {state.step === 'vehicle' && (
-          <>
-            <RestoreQuotePrompt
-              onContinue={(snapshot: QuoteProgressSnapshot) => {
-                // We only restore the lightweight context. Vehicle look-up
-                // and tyre catalogue items must be re-resolved when the user
-                // re-enters their reg, so just hop to the furthest known step
-                // that does not require a tyre object.
-                if (snapshot.location) {
-                  dispatch({
-                    type: 'restore',
-                    snapshot: {
-                      step: 'location',
-                      location: snapshot.location,
-                      isEmergencyAssistMode: snapshot.isEmergencyAssistMode,
-                      emergencyAssistEventId: snapshot.emergencyAssistEventId ?? null,
-                    },
-                  });
-                }
-              }}
-              onDiscard={() => clearQuoteProgress()}
-            />
-            <EmergencyAssistCard
-              active={state.isEmergencyAssistMode}
-              emergencyAssistEventId={state.emergencyAssistEventId}
-              onActivate={() => dispatch({ type: 'enable_emergency_mode' })}
-              onContinueToLocation={() =>
-                dispatch({ type: 'emergency_continue_to_location' })
-              }
-              onDeactivate={() => dispatch({ type: 'disable_emergency_mode' })}
-              onEventIdAcquired={(eventId) =>
-                dispatch({ type: 'set_emergency_event_id', eventId })
-              }
-            />
-            <VehicleLookupStep
-              initial={state.vehicle}
-              onContinue={(vehicle) => dispatch({ type: 'set_vehicle', vehicle })}
-            />
-          </>
-        )}
-        {state.step === 'tyre' && (
-          <>
-            {!state.isEmergencyAssistMode && (
-              <SaveProgressCard
-                sourcePage="quote.tyre"
-                tyreProblemType={state.triage?.tyreProblemType ?? null}
-                vehicleRegistration={state.vehicle?.registration ?? null}
-              />
-            )}
-            <TyreSelectionStep
-              vehicle={state.vehicle}
-              initial={state.triage}
-              onContinue={(triage) => dispatch({ type: 'set_triage', triage })}
-              onBack={() => dispatch({ type: 'go_to', step: 'vehicle' })}
-            />
-          </>
-        )}
-        {state.step === 'location' && (
+        {state.step === 'address' && (
           <LocationCaptureStep
-            initial={state.location}
-            onContinue={(location) => {
-              dispatch({ type: 'set_location', location });
-              if (state.isEmergencyAssistMode && state.emergencyAssistEventId) {
-                void patchEmergencyAssistLocation(
-                  state.emergencyAssistEventId,
-                  location,
-                ).then((ok) => {
-                  if (ok) dispatch({ type: 'mark_emergency_location_sent' });
-                });
-              }
-            }}
-            onBack={() =>
-              dispatch({ type: 'go_to', step: state.isEmergencyAssistMode ? 'vehicle' : 'tyre' })
-            }
-          />
-        )}
-        {state.step === 'quote' && state.triage && (
-          <QuoteDisplayStep
-            vehicle={state.vehicle}
-            triage={state.triage}
-            location={state.location}
-            onBack={() => dispatch({ type: 'go_to', step: 'location' })}
+            initial={state.address}
+            onContinue={(address) => dispatch({ type: 'set_address', address })}
           />
         )}
 
-        {showRescue && state.step !== 'quote' && (
-          <CallBackRescueCard
-            sourcePage={sourcePage}
-            tyreProblemType={state.triage?.tyreProblemType ?? null}
+        {state.step === 'tyre' && state.address && (
+          <TyreSelectionStep
+            initial={
+              state.tyre.selected && state.tyre.size && state.tyre.lockingWheelNutStatus
+                ? {
+                    size: state.tyre.size,
+                    selected: state.tyre.selected,
+                    lockingWheelNutStatus: state.tyre.lockingWheelNutStatus,
+                  }
+                : null
+            }
+            onContinue={(payload) => dispatch({ type: 'set_tyre', payload })}
+            onBack={() => dispatch({ type: 'goto_step', step: 'address' })}
           />
         )}
+
+        {state.step === 'quote' &&
+          state.address &&
+          state.tyre.selected &&
+          state.tyre.lockingWheelNutStatus && (
+            <QuoteDisplayStep
+              address={state.address}
+              tyre={{
+                size: state.tyre.size ?? '',
+                selected: state.tyre.selected,
+                lockingWheelNutStatus: state.tyre.lockingWheelNutStatus,
+              }}
+              onBack={() => dispatch({ type: 'goto_step', step: 'tyre' })}
+            />
+          )}
       </Stack>
 
       <StickyQuoteActions
         primaryLabel={state.step === 'quote' ? 'Continue to checkout' : 'Continue'}
-        caption={stepCaption[state.step]}
+        caption={stepCaption}
         secondaryLabel="Call us"
         onSecondary={() => {
-          const tel = process.env.NEXT_PUBLIC_BUSINESS_PHONE_E164;
+          const tel = process.env['NEXT_PUBLIC_BUSINESS_PHONE_E164'];
           if (tel && typeof window !== 'undefined') {
             try {
-              // fire-and-forget call-click report
-              import('@/lib/lead-events/call-click').then(({ reportCallClick }) => {
-                reportCallClick({ sourceComponent: 'QuoteFlow.stickyCallUs' });
-              });
+              import('@/lib/lead-events/call-click')
+                .then(({ reportCallClick }) => {
+                  reportCallClick({ sourceComponent: 'QuoteFlow.stickyCallUs' });
+                })
+                .catch(() => {
+                  /* never block tel: */
+                });
             } catch {
               /* never block tel: */
             }
@@ -384,12 +262,7 @@ export function QuoteFlow() {
           }
         }}
       />
-
-      <QuoteExitIntentPrompt
-        disabled={exitDisabled}
-        onWantsCallback={() => setShowRescue(true)}
-      />
+      <MiniProgressBubble current={state.step} />
     </QuoteShell>
   );
 }
-

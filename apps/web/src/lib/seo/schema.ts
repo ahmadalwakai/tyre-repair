@@ -1,10 +1,13 @@
 import type {
+  AboutPage,
   AutomotiveBusiness,
   BreadcrumbList,
+  ContactPage,
   EmergencyService,
   FAQPage,
   LocalBusiness,
   Service,
+  WebPage,
   WebSite,
   WithContext,
 } from 'schema-dts';
@@ -20,7 +23,7 @@ const HQ_ADDRESS = {
   streetAddress: 'Unit 1, 10 Gateside Street',
   addressLocality: 'Glasgow',
   postalCode: 'G31 1PD',
-  addressRegion: 'Glasgow',
+  addressRegion: 'Scotland',
   addressCountry: 'GB',
 };
 
@@ -185,5 +188,88 @@ export function buildBreadcrumbSchema(items: readonly BreadcrumbItem[]): WithCon
       name: it.name,
       item: getCanonicalUrl(it.href),
     })),
+  };
+}
+
+export interface SimplePageSchemaInput {
+  name: string;
+  description: string;
+  pathname: string;
+}
+
+/**
+ * AboutPage JSON-LD that references the global LocalBusiness `@id`.
+ * Contains no reviews, ratings or fake branches.
+ */
+export function buildAboutPageSchema(input: SimplePageSchemaInput): WithContext<AboutPage> {
+  const url = getCanonicalUrl(input.pathname);
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'AboutPage',
+    '@id': `${url}#aboutpage`,
+    url,
+    name: input.name,
+    description: input.description,
+    inLanguage: 'en-GB',
+    isPartOf: { '@id': `${siteConfig.baseUrl}/#website` },
+    about: { '@id': `${siteConfig.baseUrl}/#business` },
+    primaryImageOfPage: {
+      '@type': 'ImageObject',
+      url: `${siteConfig.baseUrl}/opengraph-image`,
+    },
+  };
+}
+
+/**
+ * ContactPage JSON-LD with a contactPoint pointing at the real Glasgow HQ
+ * phone number. References the global LocalBusiness `@id`.
+ */
+export function buildContactPageSchema(input: SimplePageSchemaInput): WithContext<ContactPage> {
+  const url = getCanonicalUrl(input.pathname);
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ContactPage',
+    '@id': `${url}#contactpage`,
+    url,
+    name: input.name,
+    description: input.description,
+    inLanguage: 'en-GB',
+    isPartOf: { '@id': `${siteConfig.baseUrl}/#website` },
+    about: { '@id': `${siteConfig.baseUrl}/#business` },
+    mainEntity: {
+      '@type': 'Organization',
+      '@id': `${siteConfig.baseUrl}/#business`,
+      name: siteConfig.businessName,
+      url: siteConfig.baseUrl,
+      address: HQ_ADDRESS,
+      contactPoint: [
+        {
+          '@type': 'ContactPoint',
+          telephone: E164_PHONE,
+          contactType: 'customer service',
+          areaServed: 'GB',
+          availableLanguage: 'en-GB',
+        },
+      ],
+    },
+  };
+}
+
+/**
+ * Generic WebPage JSON-LD. Use for trust pages where AboutPage / ContactPage
+ * are not appropriate (e.g. /how-it-works). No fake duration, price or ETA.
+ */
+export function buildWebPageSchema(input: SimplePageSchemaInput): WithContext<WebPage> {
+  const url = getCanonicalUrl(input.pathname);
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    '@id': `${url}#webpage`,
+    url,
+    name: input.name,
+    description: input.description,
+    inLanguage: 'en-GB',
+    isPartOf: { '@id': `${siteConfig.baseUrl}/#website` },
+    about: { '@id': `${siteConfig.baseUrl}/#business` },
   };
 }

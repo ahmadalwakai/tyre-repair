@@ -1,81 +1,68 @@
 'use client';
-import { useEffect, useState } from 'react';
 import { Box, HStack, Stack, Text } from '@chakra-ui/react';
 import { GoldButton } from '@/components/ui/GoldButton';
-import {
-  isQuoteProgressExpired,
-  loadQuoteProgress,
-  type QuoteProgressSnapshot,
-} from '@/lib/quote/progress-storage';
 
 export interface RestoreQuotePromptProps {
-  /** Called when the user accepts the saved progress. */
-  onContinue: (snapshot: QuoteProgressSnapshot) => void;
-  /** Called when the user rejects the saved progress. */
+  /** Resume the persisted state. */
+  onResume: () => void;
+  /** Discard the persisted state and start fresh. */
   onDiscard: () => void;
+  /** When the persisted snapshot was last updated. Used for the
+   * "saved Xm ago" caption. */
+  savedAt: Date;
 }
 
-export function RestoreQuotePrompt({ onContinue, onDiscard }: RestoreQuotePromptProps) {
-  const [snapshot, setSnapshot] = useState<QuoteProgressSnapshot | null>(null);
+function formatRelative(savedAt: Date): string {
+  const diffMs = Date.now() - savedAt.getTime();
+  const diffMins = Math.max(0, Math.round(diffMs / 60_000));
+  if (diffMins < 1) return 'just now';
+  if (diffMins === 1) return '1 minute ago';
+  if (diffMins < 60) return `${diffMins} minutes ago`;
+  return 'over an hour ago';
+}
 
-  useEffect(() => {
-    const s = loadQuoteProgress();
-    if (!s || isQuoteProgressExpired(s)) {
-      setSnapshot(null);
-      return;
-    }
-    setSnapshot(s);
-  }, []);
-
-  if (!snapshot) return null;
-
-  const reg = snapshot.vehicle?.registration ?? null;
-  const lines: string[] = [];
-  if (reg) lines.push(`Vehicle ${reg}`);
-  if (snapshot.tyreProblemType) lines.push(`Issue: ${snapshot.tyreProblemType.replace(/_/g, ' ').toLowerCase()}`);
-  if (snapshot.location?.postcode) lines.push(`Location: ${snapshot.location.postcode}`);
-
+/**
+ * Top-of-page banner shown on /quote when a valid v2 progress snapshot is
+ * found in localStorage. Fades in, mobile-first stacked layout, two CTAs.
+ *
+ * Visibility logic (whether to render at all) is owned by the parent —
+ * this component is purely presentational.
+ */
+export function RestoreQuotePrompt({
+  onResume,
+  onDiscard,
+  savedAt,
+}: RestoreQuotePromptProps) {
   return (
-    <Stack
-      gap="3"
-      p={{ base: '4', md: '5' }}
-      borderRadius="lg"
+    <Box
+      role="region"
+      aria-label="Resume previous quote"
       borderWidth="1px"
       borderColor="border.gold"
+      borderRadius="md"
       bg="bg.surface"
+      p={{ base: '4', md: '5' }}
+      style={{ animation: 'fadeIn 0.3s ease' }}
     >
-      <Stack gap="1">
-        <Text fontFamily="heading" color="accent.neon" fontSize="lg">
-          Pick up where you left off?
-        </Text>
-        <Text color="fg.muted" fontSize="sm">
-          We saved your progress on this device.
-        </Text>
-        {lines.length > 0 ? (
-          <Box mt="1">
-            {lines.map((l) => (
-              <Text key={l} color="fg.muted" fontSize="xs">
-                {l}
-              </Text>
-            ))}
-          </Box>
-        ) : null}
+      <Stack gap="3">
+        <Stack gap="1">
+          <Text fontFamily="heading" color="accent.neon" fontSize="md">
+            Pick up where you left off?
+          </Text>
+          <Text color="fg.muted" fontSize="sm">
+            We saved your progress {formatRelative(savedAt)}. You can resume or
+            start a new quote.
+          </Text>
+        </Stack>
+        <HStack gap="3" wrap="wrap">
+          <GoldButton variant="solid" onClick={onResume}>
+            Continue where I left off
+          </GoldButton>
+          <GoldButton variant="ghost" onClick={onDiscard}>
+            Start over
+          </GoldButton>
+        </HStack>
       </Stack>
-      <HStack gap="3" wrap="wrap">
-        <GoldButton onClick={() => onContinue(snapshot)} variant="solid" size="sm">
-          Continue
-        </GoldButton>
-        <GoldButton
-          onClick={() => {
-            setSnapshot(null);
-            onDiscard();
-          }}
-          variant="ghost"
-          size="sm"
-        >
-          Start again
-        </GoldButton>
-      </HStack>
-    </Stack>
+    </Box>
   );
 }

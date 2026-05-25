@@ -50,6 +50,17 @@ export async function GET(
         tyreProblemType: schema.bookings.tyreProblemType,
         assessmentFeeGbp: schema.bookings.assessmentFeeGbp,
         source: schema.bookings.source,
+        // Buy Tyres scheduled-fitting fields
+        fittingMethod: schema.bookings.fittingMethod,
+        quantity: schema.bookings.quantity,
+        scheduledAt: schema.bookings.scheduledAt,
+        slotLabel: schema.bookings.slotLabel,
+        isBackorder: schema.bookings.isBackorder,
+        backorderEtaDays: schema.bookings.backorderEtaDays,
+        fittingFeeGbp: schema.bookings.fittingFeeGbp,
+        distanceFeeGbp: schema.bookings.distanceFeeGbp,
+        checkoutPaymentMode: schema.bookings.checkoutPaymentMode,
+        stockDecrementedAt: schema.bookings.stockDecrementedAt,
         customerName: schema.customers.fullName,
         customerPhone: schema.customers.phone,
         customerEmail: schema.customers.email,
@@ -63,6 +74,10 @@ export async function GET(
         tyreModel: schema.tyreCatalog.model,
         tyreSize: schema.tyreCatalog.sizeLabel,
         tyreSku: schema.tyreCatalog.sku,
+        tyrePriceGbp: schema.tyreCatalog.basePriceGbp,
+        tyreStockAvailable: schema.stock.quantityAvailable,
+        tyreStockReserved: schema.stock.reservedQuantity,
+        tyreStockLowThreshold: schema.stock.lowStockThreshold,
         backupTyreId: backupTyre.id,
         backupTyreBrand: backupTyre.brand,
         backupTyreModel: backupTyre.model,
@@ -82,6 +97,7 @@ export async function GET(
         eq(schema.customerLocations.id, schema.bookings.locationId),
       )
       .leftJoin(schema.tyreCatalog, eq(schema.tyreCatalog.id, schema.bookings.tyreId))
+      .leftJoin(schema.stock, eq(schema.stock.tyreId, schema.bookings.tyreId))
       .leftJoin(backupTyre, eq(backupTyre.id, schema.bookings.backupTyreId))
       .leftJoin(schema.quotes, eq(schema.quotes.id, schema.bookings.quoteId))
       .leftJoin(schema.payments, eq(schema.payments.bookingId, schema.bookings.id))
@@ -254,6 +270,17 @@ export async function GET(
       tyreProblemType: row.tyreProblemType ?? null,
       assessmentFeeGbp: row.assessmentFeeGbp ? String(row.assessmentFeeGbp) : null,
       source: row.source ?? null,
+      // Buy Tyres scheduled-fitting fields (null for emergency bookings).
+      fittingMethod: row.fittingMethod ?? null,
+      quantity: row.quantity ?? null,
+      scheduledAt: row.scheduledAt ? row.scheduledAt.toISOString() : null,
+      slotLabel: row.slotLabel ?? null,
+      isBackorder: row.isBackorder ?? null,
+      backorderEtaDays: row.backorderEtaDays ?? null,
+      fittingFeeGbp: row.fittingFeeGbp ? String(row.fittingFeeGbp) : null,
+      distanceFeeGbp: row.distanceFeeGbp ? String(row.distanceFeeGbp) : null,
+      checkoutPaymentMode: row.checkoutPaymentMode ?? null,
+      stockDecrementedAt: row.stockDecrementedAt ? row.stockDecrementedAt.toISOString() : null,
       createdAt: row.createdAt.toISOString(),
       confirmedAt: row.confirmedAt ? row.confirmedAt.toISOString() : null,
       dispatchedAt: row.dispatchedAt ? row.dispatchedAt.toISOString() : null,
@@ -279,6 +306,15 @@ export async function GET(
           model: row.tyreModel,
           sizeLabel: row.tyreSize,
           sku: row.tyreSku,
+          basePriceGbp: row.tyrePriceGbp ? Number(row.tyrePriceGbp).toFixed(2) : null,
+          stock:
+            row.tyreStockAvailable != null
+              ? {
+                  quantityAvailable: row.tyreStockAvailable,
+                  reservedQuantity: row.tyreStockReserved ?? 0,
+                  lowStockThreshold: row.tyreStockLowThreshold ?? 0,
+                }
+              : null,
         }
       : null,
     backupTyre: row.backupTyreId

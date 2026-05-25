@@ -1,4 +1,5 @@
 import { Box, SimpleGrid, Stack, Text } from '@chakra-ui/react';
+import NextLink from 'next/link';
 import {
   FiAlertOctagon,
   FiClock,
@@ -11,13 +12,18 @@ import { SectionShell } from '@/components/ui/SectionShell';
 import { RevealOnScroll } from '@/components/motion/RevealOnScroll';
 import type { LandingService } from '@/types/landing';
 
-const SERVICES: readonly LandingService[] = [
+interface LinkedService extends LandingService {
+  href: string;
+}
+
+const SERVICES: readonly LinkedService[] = [
   {
     id: 'flat-callout',
     title: 'Flat tyre callout',
     copy:
       'Stranded at home, work, or roadside? Start a quote and we’ll price the emergency callout for your location.',
     icon: <FiAlertOctagon />,
+    href: '/services/emergency-tyre-repair',
   },
   {
     id: 'puncture',
@@ -25,6 +31,7 @@ const SERVICES: readonly LandingService[] = [
     copy:
       'Where safe and legal, we repair punctures without forcing a replacement.',
     icon: <FiTool />,
+    href: '/services/puncture-repair',
   },
   {
     id: 'replacement',
@@ -32,6 +39,7 @@ const SERVICES: readonly LandingService[] = [
     copy:
       'Choose from budget, mid-range, and premium tyres with stock visibility before payment.',
     icon: <FiSettings />,
+    href: '/services/mobile-tyre-fitting',
   },
   {
     id: 'out-of-hours',
@@ -39,6 +47,7 @@ const SERVICES: readonly LandingService[] = [
     copy:
       'Night and early morning demand is handled automatically by the live pricing engine.',
     icon: <FiClock />,
+    href: '/services/24-hour-mobile-tyre-fitting',
   },
   {
     id: 'mobile-fitting',
@@ -46,6 +55,7 @@ const SERVICES: readonly LandingService[] = [
     copy:
       'We come to your location across Scotland and fit the tyre on site.',
     icon: <FiTruck />,
+    href: '/services/roadside-tyre-fitting',
   },
   {
     id: 'special-order',
@@ -53,6 +63,7 @@ const SERVICES: readonly LandingService[] = [
     copy:
       'If the tyre is not in stock, the system clearly shows special order before payment.',
     icon: <FiPackage />,
+    href: '/services',
   },
 ];
 
@@ -67,27 +78,33 @@ export function ServicesSection() {
       <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} gap={{ base: '4', md: '6' }}>
         {SERVICES.map((service, i) => (
           <RevealOnScroll key={service.id} delay={i * 0.05}>
-            <Stack
-              h="full"
-              p={{ base: '5', md: '6' }}
-              gap="3"
-              borderRadius="lg"
-              borderWidth="1px"
-              borderColor="border.subtle"
-              bg="bg.surface"
-              transition="border-color 0.2s, transform 0.2s, box-shadow 0.2s"
-              _hover={{ borderColor: 'border.gold', transform: 'translateY(-2px)', boxShadow: 'glowSoft' }}
+            <NextLink
+              href={service.href}
+              aria-label={`${service.title} — learn more`}
+              style={{ display: 'block', height: '100%' }}
             >
-              <Box color="accent.neon" fontSize="2xl" aria-hidden>
-                {service.icon}
-              </Box>
-              <Text fontFamily="heading" fontSize="lg" color="fg.default">
-                {service.title}
-              </Text>
-              <Text color="fg.muted" fontSize="sm">
-                {service.copy}
-              </Text>
-            </Stack>
+              <Stack
+                h="full"
+                p={{ base: '5', md: '6' }}
+                gap="3"
+                borderRadius="lg"
+                borderWidth="1px"
+                borderColor="border.subtle"
+                bg="bg.surface"
+                transition="border-color 0.2s, transform 0.2s, box-shadow 0.2s"
+                _hover={{ borderColor: 'border.gold', transform: 'translateY(-2px)', boxShadow: 'glowSoft' }}
+              >
+                <Box color="accent.neon" fontSize="2xl" aria-hidden>
+                  {service.icon}
+                </Box>
+                <Text fontFamily="heading" fontSize="lg" color="fg.default">
+                  {service.title}
+                </Text>
+                <Text color="fg.muted" fontSize="sm">
+                  {service.copy}
+                </Text>
+              </Stack>
+            </NextLink>
           </RevealOnScroll>
         ))}
       </SimpleGrid>

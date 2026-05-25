@@ -85,6 +85,17 @@ const querySchema = z.object({
   createdTo: z.string().datetime().optional(),
   page: z.coerce.number().int().min(1).optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
+  /**
+   * Buy Tyres integration — source filter.
+   * - 'tyre_shop'    : only Buy Tyres scheduled-fitting orders.
+   * - 'emergency'    : everything else (NULL or any non tyre_shop value).
+   * - 'admin_phone'  : exact match.
+   * - 'public_quote' : exact match.
+   * - 'all' / unset  : no filter applied.
+   */
+  source: z
+    .enum(['all', 'tyre_shop', 'emergency', 'admin_phone', 'public_quote'])
+    .optional(),
 });
 
 const createSchema = z.object({
@@ -185,6 +196,16 @@ export async function GET(req: Request): Promise<NextResponse> {
   if (q.completed) filters.push(eq(schema.bookings.status, 'completed'));
   if (q.createdFrom) filters.push(gte(schema.bookings.createdAt, new Date(q.createdFrom)));
   if (q.createdTo) filters.push(lte(schema.bookings.createdAt, new Date(q.createdTo)));
+  // Buy Tyres source filter — additive, never affects existing callers that omit it.
+  if (q.source && q.source !== 'all') {
+    if (q.source === 'emergency') {
+      filters.push(
+        sql`(${schema.bookings.source} IS NULL OR ${schema.bookings.source} <> 'tyre_shop')`,
+      );
+    } else {
+      filters.push(eq(schema.bookings.source, q.source));
+    }
+  }
   if (q.q) {
     const like = `%${q.q}%`;
     const clause = or(
@@ -241,6 +262,18 @@ export async function GET(req: Request): Promise<NextResponse> {
         backupTyreBrand: backupTyre.brand,
         backupTyreModel: backupTyre.model,
         backupTyreSize: backupTyre.sizeLabel,
+        // Buy Tyres scheduled-fitting fields (additive, nullable for emergency rows).
+        source: schema.bookings.source,
+        fittingMethod: schema.bookings.fittingMethod,
+        quantity: schema.bookings.quantity,
+        scheduledAt: schema.bookings.scheduledAt,
+        slotLabel: schema.bookings.slotLabel,
+        isBackorder: schema.bookings.isBackorder,
+        backorderEtaDays: schema.bookings.backorderEtaDays,
+        fittingFeeGbp: schema.bookings.fittingFeeGbp,
+        distanceFeeGbp: schema.bookings.distanceFeeGbp,
+        checkoutPaymentMode: schema.bookings.checkoutPaymentMode,
+        stockDecrementedAt: schema.bookings.stockDecrementedAt,
       })
       .from(schema.bookings)
       .leftJoin(schema.customers, eq(schema.customers.id, schema.bookings.customerId))
@@ -294,6 +327,18 @@ export async function GET(req: Request): Promise<NextResponse> {
     jobType: r.jobType ?? 'REPLACEMENT',
     tyreProblemType: r.tyreProblemType ?? null,
     assessmentFeeGbp: r.assessmentFeeGbp ? String(r.assessmentFeeGbp) : null,
+    // Buy Tyres scheduled-fitting fields — null/undefined-safe for emergency bookings.
+    source: r.source ?? null,
+    fittingMethod: r.fittingMethod ?? null,
+    quantity: r.quantity ?? null,
+    scheduledAt: r.scheduledAt ? r.scheduledAt.toISOString() : null,
+    slotLabel: r.slotLabel ?? null,
+    isBackorder: r.isBackorder ?? null,
+    backorderEtaDays: r.backorderEtaDays ?? null,
+    fittingFeeGbp: r.fittingFeeGbp ? String(r.fittingFeeGbp) : null,
+    distanceFeeGbp: r.distanceFeeGbp ? String(r.distanceFeeGbp) : null,
+    checkoutPaymentMode: r.checkoutPaymentMode ?? null,
+    stockDecrementedAt: r.stockDecrementedAt ? r.stockDecrementedAt.toISOString() : null,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
   }));

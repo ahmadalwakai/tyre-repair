@@ -18,6 +18,9 @@ export interface RecentUnhandledCallClick {
   tyreProblemType: string | null;
   jobType: 'ASSESSMENT' | 'REPLACEMENT' | null;
   locationSummary: string | null;
+  networkCity: string | null;
+  networkRegion: string | null;
+  networkCountry: string | null;
   createdAt: string;
 }
 

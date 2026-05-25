@@ -12,6 +12,7 @@ import { InAppNotificationBanner } from '@/components/notifications/InAppNotific
 import { IncomingCallQuickBookingPopup } from '@/components/quick-booking/IncomingCallQuickBookingPopup';
 import { EmergencyAssistPopup } from '@/components/emergency/EmergencyAssistPopup';
 import { NewBookingPopup } from '@/components/booking/NewBookingPopup';
+import { OfflineOutboxBanner } from '@/components/system/OfflineOutboxBanner';
 import '../global.css';
 
 export default function RootLayout(): React.JSX.Element {
@@ -31,6 +32,7 @@ export default function RootLayout(): React.JSX.Element {
                     }}
                   />
                   <InAppNotificationBanner />
+                  <OfflineOutboxBanner />
                   <IncomingCallQuickBookingPopup />
                   <EmergencyAssistPopup />
                   <NewBookingPopup />

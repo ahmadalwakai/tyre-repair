@@ -41,6 +41,14 @@ export interface TrackingBookingResult {
     | 'NOT_SURE'
     | null;
   assessmentFeeGbp: string | null;
+  /* Buy Tyres scheduled-fitting fields (null for emergency bookings). */
+  source?: string | null;
+  fittingMethod?: 'GARAGE' | 'HOME' | null;
+  quantity?: number | null;
+  scheduledAt?: string | null;
+  slotLabel?: string | null;
+  isBackorder?: boolean | null;
+  backorderEtaDays?: number | null;
   backupTyre: {
     brand: string;
     model: string;

@@ -90,6 +90,14 @@ export interface TodaySummary {
     onSite: number;
     completed: number;
     cancelled: number;
+    /** Buy Tyres scheduled-fitting orders created today. */
+    buyTyres?: number;
+    /** Emergency / non tyre_shop bookings created today. */
+    emergency?: number;
+    /** Buy Tyres orders that successfully paid today. */
+    buyTyresPaid?: number;
+    /** Buy Tyres special-orders / backorders open today. */
+    buyTyresBackorders?: number;
   };
   pending: {
     paymentFailed: number;

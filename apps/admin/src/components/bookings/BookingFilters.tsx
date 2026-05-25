@@ -14,6 +14,8 @@ export interface BookingFilterState {
     | 'missingLockingNutKey'
     | 'cancelled'
     | 'completed';
+  /** Buy Tyres integration — filter by booking source. */
+  source: 'all' | 'tyre_shop' | 'emergency';
 }
 
 export const INITIAL_FILTER: BookingFilterState = {
@@ -21,6 +23,7 @@ export const INITIAL_FILTER: BookingFilterState = {
   jobType: 'all',
   bookingStatus: 'all',
   flag: 'none',
+  source: 'all',
 };
 
 export function filterStateToQuery(
@@ -32,6 +35,7 @@ export function filterStateToQuery(
   if (state.q.trim()) q.q = state.q.trim();
   if (state.jobType !== 'all') q.jobType = state.jobType;
   if (state.bookingStatus !== 'all') q.bookingStatus = state.bookingStatus;
+  if (state.source !== 'all') q.source = state.source;
   switch (state.flag) {
     case 'paymentFailed':
       q.paymentFailed = true;
@@ -98,6 +102,13 @@ export function BookingFilters({
         <Chip label="All" value="all" active={state.jobType} onSelect={(v) => onChange({ ...state, jobType: v })} />
         <Chip label="Assessment" value="ASSESSMENT" active={state.jobType} onSelect={(v) => onChange({ ...state, jobType: v })} />
         <Chip label="Replacement" value="REPLACEMENT" active={state.jobType} onSelect={(v) => onChange({ ...state, jobType: v })} />
+      </View>
+
+      <Text className="text-text-dim text-[10px] uppercase tracking-wide mb-1 mt-1">Source</Text>
+      <View className="flex-row flex-wrap">
+        <Chip label="All" value="all" active={state.source} onSelect={(v) => onChange({ ...state, source: v })} />
+        <Chip label="Emergency" value="emergency" active={state.source} onSelect={(v) => onChange({ ...state, source: v })} />
+        <Chip label="Buy Tyres" value="tyre_shop" active={state.source} onSelect={(v) => onChange({ ...state, source: v })} />
       </View>
 
       <Text className="text-text-dim text-[10px] uppercase tracking-wide mb-1 mt-1">Status</Text>

@@ -33,4 +33,7 @@ export interface CheckoutQuoteSummary {
   availability: 'in_stock' | 'low_stock' | 'special_order';
   isSpecialOrder: boolean;
   expiresAt: string | null;
+  /** Customer's locking-nut answer captured during the quote flow.
+   * Pre-fills the radio group on /checkout. Null = not answered yet. */
+  lockingWheelNutStatus: 'HAVE_KEY' | 'NO_KEY' | 'STANDARD_ONLY' | null;
 }

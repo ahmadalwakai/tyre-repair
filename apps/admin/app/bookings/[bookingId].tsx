@@ -12,6 +12,9 @@ import { PaymentRiskCard } from '@/components/payments/PaymentRiskCard';
 import { BookingLocationCard } from '@/components/bookings/BookingLocationCard';
 import { BookingHealthCard } from '@/components/bookings/BookingHealthCard';
 import { InternalNotesPanel } from '@/components/bookings/InternalNotesPanel';
+import { BookingPricingAuditPanel } from '@/components/bookings/BookingPricingAuditPanel';
+import { BookingAttachmentsPanel } from '@/components/bookings/BookingAttachmentsPanel';
+import { BuyTyresDetailsPanel } from '@/components/bookings/BuyTyresDetailsPanel';
 import { NoAnswerButton } from '@/components/bookings/NoAnswerButton';
 import { CopySummaryButton } from '@/components/bookings/CopySummaryButton';
 import { WhatsAppShareButton } from '@/components/bookings/WhatsAppShareButton';
@@ -170,6 +173,9 @@ export default function BookingDetailScreen(): React.JSX.Element {
 
           {/* Item 9 — Payment risk */}
           <PaymentRiskCard risk={data.paymentRisk} />
+
+          {/* Buy Tyres scheduled-fitting panel — only shown for tyre_shop bookings. */}
+          <BuyTyresDetailsPanel detail={data} />
 
           {/* Admin Efficiency Pack F2 — Booking health score */}
           <BookingHealthCard health={data.healthScore} />
@@ -359,6 +365,12 @@ export default function BookingDetailScreen(): React.JSX.Element {
 
           {/* Admin Efficiency Pack F5 — Internal notes */}
           {bookingId ? <InternalNotesPanel bookingId={bookingId} /> : null}
+
+          {/* Admin Operations Completion Pack — pricing decisions audit */}
+          {bookingId ? <BookingPricingAuditPanel bookingId={bookingId} /> : null}
+
+          {/* Admin Stability & Field Operations Pack — Part 3 — attachments */}
+          {bookingId ? <BookingAttachmentsPanel bookingId={bookingId} /> : null}
 
           {/* Admin Efficiency Pack F8 — Customer risk notes */}
           <CustomerRiskNotesPanel customerPhone={data.customer.phone} />

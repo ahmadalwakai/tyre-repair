@@ -28,7 +28,7 @@ export function EmergencyBanner() {
                     '0 0 0 rgba(255,215,0,0.0)',
                   ],
                 },
-                transition: { duration: 3.6, repeat: Infinity, ease: 'easeInOut' },
+                transition: { duration: 3.6, repeat: 2, ease: 'easeInOut' },
               })}
         >
           <Flex

@@ -1,36 +1,47 @@
 /**
- * Phase 11 — Auto-save quote progress.
+ * Auto-save quote progress.
  *
- * Stores a small, non-sensitive snapshot of the customer's quote-flow state in
- * `localStorage` so a refresh, accidental close, or back-navigation does not lose
- * their progress. We deliberately do NOT store anything payment-related (no
- * client secrets, no card data, no tokens, no JWTs).
+ * Stores a small, non-sensitive snapshot of the customer's quote-flow state
+ * in `localStorage` so a refresh, accidental close, or back-navigation does
+ * not lose their progress. We deliberately do NOT store anything
+ * payment-related (no client secrets, no card data, no tokens, no JWTs).
+ *
+ * v2 schema (Phase 7):
+ *   { version: 2, step, address, tyre, updatedAt }
+ *
+ * The previous v1 shape (vehicle/triage/emergency) is incompatible — old
+ * snapshots are silently dropped on read.
  */
 
-import type { CapturedLocation, QuoteJobType, TyreProblemType } from '@/types/quote';
+import type { CapturedLocation } from '@/types/quote';
+import type { QuoteStep } from '@/lib/quote/steps';
 
-const STORAGE_KEY = 'tyrerepair:quote-progress:v1';
+const STORAGE_KEY = 'tyrerepair:quote-progress:v2';
 const TTL_MS = 30 * 60 * 1000;
+const SCHEMA_VERSION = 2 as const;
 
-export interface QuoteProgressVehicle {
-  registration: string | null;
-  make: string | null;
-  model: string | null;
-  year: number | null;
-  manualTyreSize: string | null;
+export type LockingWheelNutStatus = 'HAVE_KEY' | 'NO_KEY' | 'STANDARD_ONLY';
+
+/** Minimum tyre identity we re-hydrate from storage. The full TyreOption is
+ * re-fetched on demand because stock changes frequently. */
+export interface PersistedTyreSelection {
+  id: string;
+  brand: string;
+  model: string;
+  price: number;
+}
+
+export interface PersistedTyre {
+  size: string | null;
+  selected: PersistedTyreSelection | null;
+  lockingWheelNutStatus: LockingWheelNutStatus | null;
 }
 
 export interface QuoteProgressSnapshot {
-  vehicle: QuoteProgressVehicle | null;
-  tyreProblemType: TyreProblemType | null;
-  jobType: QuoteJobType | null;
-  selectedTyreId: string | null;
-  backupTyreId: string | null;
-  location: CapturedLocation | null;
-  isEmergencyAssistMode: boolean;
-  /** Reference id returned from POST /api/lead-events/emergency-assist. Allows
-   * follow-up location updates to target the same admin popup/lead. */
-  emergencyAssistEventId: string | null;
+  version: typeof SCHEMA_VERSION;
+  step: QuoteStep;
+  address: CapturedLocation | null;
+  tyre: PersistedTyre;
   updatedAt: number;
 }
 
@@ -48,14 +59,20 @@ export function isQuoteProgressExpired(snapshot: QuoteProgressSnapshot): boolean
   return Date.now() - snapshot.updatedAt > TTL_MS;
 }
 
-export function saveQuoteProgress(input: Omit<QuoteProgressSnapshot, 'updatedAt'>): void {
+export function saveQuoteProgress(
+  input: Omit<QuoteProgressSnapshot, 'updatedAt' | 'version'>,
+): void {
   const storage = safeStorage();
   if (!storage) return;
-  const snapshot: QuoteProgressSnapshot = { ...input, updatedAt: Date.now() };
+  const snapshot: QuoteProgressSnapshot = {
+    ...input,
+    version: SCHEMA_VERSION,
+    updatedAt: Date.now(),
+  };
   try {
     storage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
   } catch {
-    // ignore quota/serialisation errors — progress is a nicety, not critical
+    // ignore quota / serialisation errors — progress is a nicety, not critical
   }
 }
 
@@ -76,8 +93,17 @@ export function loadQuoteProgress(): QuoteProgressSnapshot | null {
     return null;
   }
   if (!parsed || typeof parsed !== 'object') return null;
-  const snapshot = parsed as QuoteProgressSnapshot;
-  if (typeof snapshot.updatedAt !== 'number') return null;
+  const obj = parsed as Partial<QuoteProgressSnapshot>;
+  if (obj.version !== SCHEMA_VERSION) {
+    // Different shape — clear and ignore (no in-place migration).
+    clearQuoteProgress();
+    return null;
+  }
+  if (typeof obj.updatedAt !== 'number') return null;
+  if (typeof obj.step !== 'string' || !obj.tyre || typeof obj.tyre !== 'object') {
+    return null;
+  }
+  const snapshot = obj as QuoteProgressSnapshot;
   if (isQuoteProgressExpired(snapshot)) {
     clearQuoteProgress();
     return null;

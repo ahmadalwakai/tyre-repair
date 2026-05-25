@@ -216,6 +216,18 @@ export async function POST(req: Request): Promise<NextResponse> {
   let createdQuoteId: string;
   let createdAt: Date;
   let createdExpires: Date;
+  // Stash the customer's locking-nut answer inside pricingBreakdown so we
+  // can recover it server-side at /checkout without a URL parameter and
+  // without a schema migration. The bookings table is the canonical store
+  // (it has its own column) — this is the pre-booking handoff only.
+  const pricingBreakdownToPersist: Record<string, unknown> = {
+    ...(pricing as unknown as Record<string, unknown>),
+  };
+  if (input.lockingWheelNutStatus) {
+    pricingBreakdownToPersist['_customerSelections'] = {
+      lockingWheelNutStatus: input.lockingWheelNutStatus,
+    };
+  }
   try {
     const insertedQuotes = await db
       .insert(schema.quotes)
@@ -237,7 +249,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         vatAmountGbp: '0.00',
         totalPriceGbp: pricing.totalPriceGbp,
         distanceMiles: distanceMiles !== null ? distanceMiles.toFixed(2) : null,
-        pricingBreakdown: pricing as unknown as Record<string, unknown>,
+        pricingBreakdown: pricingBreakdownToPersist,
         expiresAt: expiresAtDate,
       })
       .returning({

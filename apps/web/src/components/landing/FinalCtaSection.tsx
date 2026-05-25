@@ -1,6 +1,7 @@
 import { Box, Container, Flex, Heading, Stack, Text } from '@chakra-ui/react';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { siteConfig } from '@/lib/site-config';
+import { buildWhatsappHref } from '@/lib/contact/whatsapp-message';
 
 export function FinalCtaSection() {
   return (
@@ -34,22 +35,21 @@ export function FinalCtaSection() {
             </Box>
           </Heading>
           <Text color="fg.muted" fontSize={{ base: 'md', md: 'lg' }} maxW="2xl">
-            Start an emergency quote or call {siteConfig.businessName} directly. We cover Scotland
+            Call {siteConfig.businessName} directly or start an emergency quote. We cover Scotland
             from our Glasgow base, 24 hours a day.
           </Text>
           <Flex gap="3" wrap="wrap" justify="center">
-            <GoldButton href={siteConfig.primaryCtaHref} size="lg">
-              {siteConfig.primaryCtaLabel}
-            </GoldButton>
             <GoldButton
               href={siteConfig.phoneHref}
-              variant="outline"
               size="lg"
               callTrackingSource="HOME_FINAL_CTA_CALL"
             >
               {siteConfig.secondaryCtaLabel}
             </GoldButton>
-            <GoldButton href={siteConfig.whatsappHref} variant="ghost" size="lg" isExternal>
+            <GoldButton href={siteConfig.primaryCtaHref} variant="outline" size="lg">
+              {siteConfig.primaryCtaLabel}
+            </GoldButton>
+            <GoldButton href={buildWhatsappHref()} variant="ghost" size="lg" isExternal>
               WhatsApp
             </GoldButton>
           </Flex>

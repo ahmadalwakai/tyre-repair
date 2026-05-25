@@ -1,45 +1,7 @@
 'use client';
 import { Accordion, Box, Text } from '@chakra-ui/react';
 import { SectionShell } from '@/components/ui/SectionShell';
-import type { LandingFaqItem } from '@/types/landing';
-
-const FAQS: readonly LandingFaqItem[] = [
-  {
-    id: 'coverage',
-    question: 'Do you cover my area?',
-    answer:
-      'TyreRepair UK covers the whole of Scotland from its Glasgow base. The quote flow calculates distance automatically.',
-  },
-  {
-    id: 'later',
-    question: 'Can I book for later?',
-    answer:
-      'The service is built around emergency callouts. The system prices the job for now and does not ask customers to choose a date or time.',
-  },
-  {
-    id: 'stock',
-    question: 'What happens if my tyre is not in stock?',
-    answer:
-      'The site will show "Special order — fitted within 3 working days" before payment.',
-  },
-  {
-    id: 'payments',
-    question: 'Can I pay by card?',
-    answer:
-      'Yes. Secure card payments are handled through Stripe, with supported wallet and 3D Secure options where available.',
-  },
-  {
-    id: 'account',
-    question: 'Do I need an account?',
-    answer: 'No. The customer flow is guest checkout only.',
-  },
-  {
-    id: 'tracking',
-    question: 'Can I track my booking?',
-    answer:
-      'Yes. Every booking receives a tracking ID and tracking link after confirmation.',
-  },
-];
+import { HOME_FAQS } from '@/lib/landing/home-faqs';
 
 export function FaqSection() {
   return (
@@ -51,7 +13,7 @@ export function FaqSection() {
     >
       <Box maxW="3xl" mx="auto">
         <Accordion.Root collapsible multiple={false}>
-          {FAQS.map((f) => (
+          {HOME_FAQS.map((f) => (
             <Accordion.Item
               key={f.id}
               value={f.id}

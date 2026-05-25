@@ -36,6 +36,10 @@ export async function GET(req: Request): Promise<NextResponse> {
       onSite: sql<number>`count(*) FILTER (WHERE ${schema.bookings.status} = 'on_site')::int`,
       completed: sql<number>`count(*) FILTER (WHERE ${schema.bookings.status} = 'completed')::int`,
       cancelled: sql<number>`count(*) FILTER (WHERE ${schema.bookings.status} = 'cancelled')::int`,
+      buyTyres: sql<number>`count(*) FILTER (WHERE ${schema.bookings.source} = 'tyre_shop')::int`,
+      emergency: sql<number>`count(*) FILTER (WHERE ${schema.bookings.source} IS NULL OR ${schema.bookings.source} <> 'tyre_shop')::int`,
+      buyTyresPaid: sql<number>`count(*) FILTER (WHERE ${schema.bookings.source} = 'tyre_shop' AND ${schema.bookings.paymentStatus} = 'succeeded')::int`,
+      buyTyresBackorders: sql<number>`count(*) FILTER (WHERE ${schema.bookings.source} = 'tyre_shop' AND ${schema.bookings.isBackorder} = true)::int`,
     })
     .from(schema.bookings)
     .where(
@@ -250,6 +254,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     date: dateStr,
     bookingsToday: bookingsToday ?? {
       total: 0, newCount: 0, confirmed: 0, dispatched: 0, onSite: 0, completed: 0, cancelled: 0,
+      buyTyres: 0, emergency: 0, buyTyresPaid: 0, buyTyresBackorders: 0,
     },
     pending: pending ?? { paymentFailed: 0, depositBalanceDue: 0, noLockingNutKey: 0 },
     cashToday: {

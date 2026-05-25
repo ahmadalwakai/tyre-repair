@@ -135,6 +135,13 @@ function BookingRow({
         >
           {isAssessment ? '🛠 Emergency assessment' : '🛞 Tyre replacement'}
         </Text>
+        {item.source === 'tyre_shop' ? (
+          <View className="self-start bg-canvas border border-gold rounded-full px-2 py-0.5 mb-2">
+            <Text className="text-gold text-[10px] font-semibold uppercase tracking-wide">
+              🛒 Buy Tyres order
+            </Text>
+          </View>
+        ) : null}
         {item.tyreProblemType ? (
           <Text className="text-text-muted text-xs mb-1">
             Tyre problem: {tyreProblemLabel(item.tyreProblemType)}
@@ -143,7 +150,29 @@ function BookingRow({
         {item.tyre ? (
           <Text className="text-text-muted text-sm">
             {item.tyre.brand} {item.tyre.model} {item.tyre.sizeLabel}
+            {item.quantity && item.quantity > 1 ? ` × ${item.quantity}` : ''}
           </Text>
+        ) : null}
+        {item.source === 'tyre_shop' ? (
+          <View className="mt-1">
+            {item.fittingMethod ? (
+              <Text className="text-text-muted text-xs">
+                {item.fittingMethod === 'HOME' ? '🏠 Home fitting' : '🔧 Garage fitting'}
+                {item.slotLabel ? ` · ${item.slotLabel}` : ''}
+                {!item.slotLabel && item.scheduledAt
+                  ? ` · ${new Date(item.scheduledAt).toLocaleString()}`
+                  : ''}
+              </Text>
+            ) : null}
+            {item.isBackorder ? (
+              <Text className="text-amber-400 text-xs font-semibold mt-0.5">
+                ⏳ Special order
+                {item.backorderEtaDays
+                  ? ` · fitted within ${item.backorderEtaDays} working days`
+                  : ' · fitted within 3 working days'}
+              </Text>
+            ) : null}
+          </View>
         ) : null}
         {item.location?.addressLine1 ? (
           <Text className="text-text-muted text-sm mt-1">{item.location.addressLine1}</Text>

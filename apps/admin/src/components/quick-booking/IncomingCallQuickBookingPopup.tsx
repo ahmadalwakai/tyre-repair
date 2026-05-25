@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useNotifications } from '@/context/NotificationProvider';
 import { acknowledgeCallClick } from '@/lib/api/call-click-events';
 import { AdminButton } from '@/components/ui/AdminButton';
+import { useToast } from '@/components/ui/Toast';
 import { colors } from '@/theme/colors';
 
 const PROBLEM_LABELS: Record<string, string> = {
@@ -13,6 +14,19 @@ const PROBLEM_LABELS: Record<string, string> = {
   NEEDS_REPLACEMENT: 'Needs replacement',
   NOT_SURE: 'Not sure',
 };
+
+function formatNetworkArea(
+  city: string | null,
+  region: string | null,
+  country: string | null,
+): string {
+  const parts: string[] = [];
+  if (city) parts.push(city);
+  if (region && region !== city) parts.push(region);
+  if (country) parts.push(country);
+  if (parts.length === 0) return '—';
+  return parts.join(', ');
+}
 
 /**
  * IncomingCallQuickBookingPopup
@@ -27,7 +41,9 @@ const PROBLEM_LABELS: Record<string, string> = {
  * never silently disappear; they must be acknowledged by the admin.
  */
 export function IncomingCallQuickBookingPopup(): React.JSX.Element | null {
-  const { incomingCall, dismissIncomingCall } = useNotifications();
+  const { incomingCall, dismissIncomingCall, markActiveLeadInProgress, queueCount } =
+    useNotifications();
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
   const handledRef = useRef<string | null>(null);
 
@@ -92,32 +108,55 @@ export function IncomingCallQuickBookingPopup(): React.JSX.Element | null {
     const id = incomingCall.callClickEventId;
     if (!id || handledRef.current === id) return;
     handledRef.current = id;
-    void acknowledgeCallClick(id, action).catch(() => {
-      // Acknowledge is best-effort; never block UI.
+    // Best-effort: never block UI. Surface failure as a soft warning toast so
+    // the admin knows the lead may still appear in the recent-unhandled replay.
+    void acknowledgeCallClick(id, action).catch((err: unknown) => {
+      // eslint-disable-next-line no-console
+      console.warn('[IncomingCallPopup] acknowledge failed', err);
+      toast.warning('Could not sync this lead yet. You can continue.');
     });
   }
 
   function startQuickBooking(): void {
     if (!incomingCall || busy) return;
     setBusy(true);
-    fireAck('STARTED_QUICK_BOOKING');
-    const params = new URLSearchParams();
-    if (incomingCall.phone) params.set('phone', incomingCall.phone);
-    if (incomingCall.customerName) params.set('customerName', incomingCall.customerName);
-    if (incomingCall.tyreProblemType) params.set('tyreProblemType', incomingCall.tyreProblemType);
-    if (incomingCall.jobType) params.set('jobType', incomingCall.jobType);
-    if (incomingCall.sourcePage) params.set('prefillSource', incomingCall.sourcePage);
-    if (incomingCall.callClickEventId) params.set('callClickEventId', incomingCall.callClickEventId);
-    const qs = params.toString();
-    dismissIncomingCall();
-    router.push(qs ? `/quick-booking?${qs}` : '/quick-booking');
+    try {
+      fireAck('STARTED_QUICK_BOOKING');
+      markActiveLeadInProgress();
+      const params = new URLSearchParams();
+      if (incomingCall.phone) params.set('phone', incomingCall.phone);
+      if (incomingCall.customerName) params.set('customerName', incomingCall.customerName);
+      if (incomingCall.tyreProblemType) params.set('tyreProblemType', incomingCall.tyreProblemType);
+      if (incomingCall.jobType) params.set('jobType', incomingCall.jobType);
+      if (incomingCall.sourcePage) params.set('prefillSource', incomingCall.sourcePage);
+      if (incomingCall.callClickEventId)
+        params.set('callClickEventId', incomingCall.callClickEventId);
+      const qs = params.toString();
+      dismissIncomingCall();
+      router.push(qs ? `/quick-booking?${qs}` : '/quick-booking');
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn('[IncomingCallPopup] start quick booking failed', err);
+      toast.error('Could not open Quick Booking. Please try again.');
+    } finally {
+      // Always reset busy so the popup is never permanently locked even if
+      // navigation fails or the popup remains mounted briefly.
+      setBusy(false);
+    }
   }
 
   function handleDismiss(): void {
     if (busy) return;
     setBusy(true);
-    fireAck('DISMISSED');
-    dismissIncomingCall();
+    try {
+      fireAck('DISMISSED');
+      dismissIncomingCall();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn('[IncomingCallPopup] dismiss failed', err);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -128,7 +167,9 @@ export function IncomingCallQuickBookingPopup(): React.JSX.Element | null {
           backgroundColor: 'rgba(0,0,0,0.7)',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: 16,
+          paddingHorizontal: 16,
+          paddingTop: 28,
+          paddingBottom: 32,
         }}
       >
         <View style={{ width: '100%', maxWidth: 420, position: 'relative' }}>
@@ -198,6 +239,36 @@ export function IncomingCallQuickBookingPopup(): React.JSX.Element | null {
           <Text style={{ color: colors.textFaint, fontSize: 11, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
             Urgent · pickup the line
           </Text>
+          {queueCount > 0 ? (
+            <View
+              style={{
+                alignSelf: 'flex-start',
+                marginBottom: 10,
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                borderRadius: 6,
+                backgroundColor: colors.surfaceSoft,
+                borderWidth: 1,
+                borderColor: colors.goldBright,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <Text style={{ color: colors.goldBright, fontSize: 12, fontWeight: '700' }}>
+                +{queueCount} waiting
+              </Text>
+              <Text
+                onPress={() => {
+                  dismissIncomingCall();
+                  router.push('/incoming-leads');
+                }}
+                style={{ color: colors.textLight, fontSize: 11, textDecorationLine: 'underline' }}
+              >
+                View leads
+              </Text>
+            </View>
+          ) : null}
           <Text style={{ color: colors.textLight, fontSize: 14, marginBottom: 12 }}>
             A customer just tapped your phone number on the website. They may be
             on the line right now.
@@ -216,7 +287,28 @@ export function IncomingCallQuickBookingPopup(): React.JSX.Element | null {
             />
             <Row label="Job type" value={incomingCall.jobType ?? '—'} />
             <Row label="From page" value={incomingCall.sourcePage ?? incomingCall.sourceComponent ?? '—'} />
+            <Row
+              label="Caller area"
+              value={formatNetworkArea(
+                incomingCall.networkCity,
+                incomingCall.networkRegion,
+                incomingCall.networkCountry,
+              )}
+            />
           </View>
+          {incomingCall.networkCity || incomingCall.networkRegion ? (
+            <Text
+              style={{
+                color: colors.textMuted,
+                fontSize: 11,
+                marginTop: -8,
+                marginBottom: 12,
+                fontStyle: 'italic',
+              }}
+            >
+              Approximate, from caller&apos;s network. Always confirm on the call.
+            </Text>
+          ) : null}
 
           <View style={{ position: 'relative', marginBottom: 10 }}>
             {/* Continuous neon halo behind the primary CTA */}

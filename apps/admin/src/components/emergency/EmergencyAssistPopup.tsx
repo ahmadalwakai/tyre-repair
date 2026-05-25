@@ -18,6 +18,7 @@ import {
 } from '@/context/NotificationProvider';
 import { WORKSHOP } from '@/lib/workshop';
 import { AdminButton } from '@/components/ui/AdminButton';
+import { useToast } from '@/components/ui/Toast';
 import { colors } from '@/theme/colors';
 import {
   buildNavigationUrl,
@@ -95,7 +96,8 @@ function formatElapsed(startedAt: string): string {
  * Per business rules: never books, never charges, never decrements stock.
  */
 export function EmergencyAssistPopup(): React.JSX.Element | null {
-  const { emergencyAssist, dismissEmergencyAssist } = useNotifications();
+  const { emergencyAssist, dismissEmergencyAssist, markActiveLeadInProgress, queueCount } =
+    useNotifications();
   const beat = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -136,17 +138,29 @@ export function EmergencyAssistPopup(): React.JSX.Element | null {
 
   if (!emergencyAssist) return null;
 
-  return <PopupBody info={emergencyAssist} beat={beat} onDismiss={dismissEmergencyAssist} />;
+  return (
+    <PopupBody
+      info={emergencyAssist}
+      beat={beat}
+      onDismiss={dismissEmergencyAssist}
+      onStarted={markActiveLeadInProgress}
+      queueCount={queueCount}
+    />
+  );
 }
 
 function PopupBody({
   info,
   beat,
   onDismiss,
+  onStarted,
+  queueCount,
 }: {
   info: EmergencyAssistInfo;
   beat: Animated.Value;
   onDismiss: () => void;
+  onStarted: () => void;
+  queueCount: number;
 }): React.JSX.Element {
   const status = locationStatus(info.locationConfidence);
   const refShort = info.eventId.slice(0, 8);
@@ -189,6 +203,11 @@ function PopupBody({
     formatted: string | null;
     postcode: string | null;
   } | null>(null);
+  // Tracks which primary action is currently navigating, so we can show a
+  // loading state and prevent duplicate taps. Always reset in finally so the
+  // popup is never permanently locked.
+  const [busyAction, setBusyAction] = useState<'quick_booking' | 'action_queue' | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (!customerPoint) {
@@ -214,29 +233,50 @@ function PopupBody({
   const displayPostcode = geocoded?.postcode ?? null;
 
   function openActionQueue(): void {
-    onDismiss();
-    router.push('/action-queue');
+    if (busyAction) return;
+    setBusyAction('action_queue');
+    try {
+      onDismiss();
+      router.push('/action-queue');
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn('[EmergencyAssistPopup] open action queue failed', err);
+      toast.error('Could not open Action Queue.');
+    } finally {
+      setBusyAction(null);
+    }
   }
 
   function openQuickBooking(): void {
-    const params = new URLSearchParams();
-    if (info.phone) params.set('phone', info.phone);
-    if (info.customerName) params.set('customerName', info.customerName);
-    if (info.tyreProblemType) params.set('tyreProblemType', info.tyreProblemType);
-    if (info.jobType) params.set('jobType', info.jobType);
-    if (info.vehicleRegistration)
-      params.set('vehicleRegistration', info.vehicleRegistration);
-    const fullAddress = displayAddress ?? info.locationLabel ?? '';
-    if (fullAddress) params.set('locationLabel', fullAddress);
-    if (typeof info.latitude === 'number')
-      params.set('latitude', String(info.latitude));
-    if (typeof info.longitude === 'number')
-      params.set('longitude', String(info.longitude));
-    if (displayPostcode) params.set('postcode', displayPostcode);
-    params.set('prefillSource', 'emergency_assist');
-    onDismiss();
-    const qs = params.toString();
-    router.push(qs ? `/quick-booking?${qs}` : '/quick-booking');
+    if (busyAction) return;
+    setBusyAction('quick_booking');
+    try {
+      onStarted();
+      const params = new URLSearchParams();
+      if (info.phone) params.set('phone', info.phone);
+      if (info.customerName) params.set('customerName', info.customerName);
+      if (info.tyreProblemType) params.set('tyreProblemType', info.tyreProblemType);
+      if (info.jobType) params.set('jobType', info.jobType);
+      if (info.vehicleRegistration)
+        params.set('vehicleRegistration', info.vehicleRegistration);
+      const fullAddress = displayAddress ?? info.locationLabel ?? '';
+      if (fullAddress) params.set('locationLabel', fullAddress);
+      if (typeof info.latitude === 'number')
+        params.set('latitude', String(info.latitude));
+      if (typeof info.longitude === 'number')
+        params.set('longitude', String(info.longitude));
+      if (displayPostcode) params.set('postcode', displayPostcode);
+      params.set('prefillSource', 'emergency_assist');
+      onDismiss();
+      const qs = params.toString();
+      router.push(qs ? `/quick-booking?${qs}` : '/quick-booking');
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.warn('[EmergencyAssistPopup] open quick booking failed', err);
+      toast.error('Could not open Quick Booking. Please try again.');
+    } finally {
+      setBusyAction(null);
+    }
   }
 
   function callCustomer(): void {
@@ -271,7 +311,9 @@ function PopupBody({
           backgroundColor: 'rgba(0,0,0,0.7)',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: 16,
+          paddingHorizontal: 16,
+          paddingTop: 28,
+          paddingBottom: 32,
         }}
       >
         <View style={{ width: '100%', maxWidth: 460, position: 'relative' }}>
@@ -304,7 +346,7 @@ function PopupBody({
               maxHeight: '92%',
             }}
           >
-            <ScrollView contentContainerStyle={{ padding: 20 }}>
+            <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 28 }}>
               <View
                 style={{
                   flexDirection: 'row',
@@ -323,6 +365,36 @@ function PopupBody({
               <Text style={{ color: colors.textDim, fontSize: 11, marginBottom: 12 }}>
                 Ref {refShort}
               </Text>
+              {queueCount > 0 ? (
+                <View
+                  style={{
+                    alignSelf: 'flex-start',
+                    marginBottom: 10,
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: 6,
+                    backgroundColor: colors.surfaceSoft,
+                    borderWidth: 1,
+                    borderColor: colors.goldBright,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <Text style={{ color: colors.goldBright, fontSize: 12, fontWeight: '700' }}>
+                    +{queueCount} waiting
+                  </Text>
+                  <Text
+                    onPress={() => {
+                      onDismiss();
+                      router.push('/incoming-leads');
+                    }}
+                    style={{ color: colors.textLight, fontSize: 11, textDecorationLine: 'underline' }}
+                  >
+                    View leads
+                  </Text>
+                </View>
+              ) : null}
               <Text style={{ color: colors.textLight, fontSize: 14, marginBottom: 12 }}>
                 A customer clicked &quot;I need help now&quot; on the quote page.
               </Text>
@@ -419,9 +491,12 @@ function PopupBody({
                 <Row label="Workshop" value={WORKSHOP.address} />
               </View>
 
-              <View style={{ gap: 10 }}>
+              <View style={{ gap: 12 }}>
                 <AdminButton
                   label="Open Quick Booking"
+                  loadingLabel="Opening…"
+                  loading={busyAction === 'quick_booking'}
+                  disabled={busyAction !== null && busyAction !== 'quick_booking'}
                   variant="primary"
                   size="lg"
                   fullWidth
@@ -429,6 +504,9 @@ function PopupBody({
                 />
                 <AdminButton
                   label="Open Action Queue"
+                  loadingLabel="Opening…"
+                  loading={busyAction === 'action_queue'}
+                  disabled={busyAction !== null && busyAction !== 'action_queue'}
                   variant="secondary"
                   size="md"
                   fullWidth
@@ -444,7 +522,7 @@ function PopupBody({
                   />
                 )}
                 {info.phone && (
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <View style={{ flexDirection: 'row', gap: 12 }}>
                     <View style={{ flex: 1 }}>
                       <AdminButton
                         label="Call customer"

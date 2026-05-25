@@ -74,6 +74,7 @@ export function TrackingSummaryCard({ data }: TrackingSummaryCardProps) {
             </Text>
             <Text color="fg.muted" fontSize="sm">
               {data.tyre.sizeLabel}
+              {data.quantity && data.quantity > 1 ? ` · Quantity ${data.quantity}` : ''}
             </Text>
             {data.isSpecialOrder ? (
               <Text color="accent.neon" fontSize="sm">
@@ -84,6 +85,39 @@ export function TrackingSummaryCard({ data }: TrackingSummaryCardProps) {
                 {availabilityLabel(data.availability)}
               </Text>
             )}
+          </Stack>
+        </Box>
+      ) : null}
+
+      {data.source === 'tyre_shop' ? (
+        <Box borderTopWidth="1px" borderColor="border.subtle" pt="4">
+          <Stack gap="1">
+            <Text color="fg.muted" fontSize="sm">
+              Fitting
+            </Text>
+            <Text color="fg.default">
+              {data.fittingMethod === 'HOME'
+                ? 'Mobile fitting at your address'
+                : data.fittingMethod === 'GARAGE'
+                  ? 'Fitting at our Glasgow garage'
+                  : 'Fitting confirmed by our team'}
+            </Text>
+            {data.slotLabel ? (
+              <Text color="fg.muted" fontSize="sm">
+                Booked slot: {data.slotLabel}
+              </Text>
+            ) : data.scheduledAt ? (
+              <Text color="fg.muted" fontSize="sm">
+                Booked slot: {new Date(data.scheduledAt).toLocaleString('en-GB')}
+              </Text>
+            ) : null}
+            {data.isBackorder ? (
+              <Text color="accent.neon" fontSize="sm">
+                {data.backorderEtaDays
+                  ? `Special order — fitted within ${data.backorderEtaDays} working days`
+                  : SPECIAL_ORDER_COPY}
+              </Text>
+            ) : null}
           </Stack>
         </Box>
       ) : null}

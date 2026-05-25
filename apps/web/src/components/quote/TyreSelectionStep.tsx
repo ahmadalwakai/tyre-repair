@@ -1,450 +1,504 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
-import { Box, chakra, Flex, Grid, HStack, Stack, Text } from '@chakra-ui/react';
+import { useEffect, useId, useMemo, useState } from 'react';
+import {
+  Badge,
+  chakra,
+  Field,
+  HStack,
+  Input,
+  SimpleGrid,
+  Spinner,
+  Stack,
+  Text,
+} from '@chakra-ui/react';
 import { GoldButton } from '@/components/ui/GoldButton';
-import { COMMON_TYRE_SIZES } from '@/lib/quote/tyres';
-import { TyreOptionCard } from './TyreOptionCard';
-import { QuoteEmptyState } from './QuoteEmptyState';
-import { QuoteErrorState } from './QuoteErrorState';
-import { QuoteLoadingState } from './QuoteLoadingState';
-import type {
-  QuoteJobType,
-  SelectedTyre,
-  TyreProblemType,
-  TyreSearchResultItem,
-  TyreTier,
-  TyreType,
-  VehicleSelection,
-} from '@/types/quote';
+import { NoTyreSizeShortcut } from '@/components/mobile/NoTyreSizeShortcut';
+import type { TyreOption, TyrePayload } from '@/types/quote';
+import type { LockingWheelNutStatus } from '@/lib/bookings/types';
 
-export interface TyreTriageResult {
-  jobType: QuoteJobType;
-  tyreProblemType: TyreProblemType;
-  selectedTyre: SelectedTyre | null;
-  backupTyre: SelectedTyre | null;
-}
+export type { TyrePayload };
 
 export interface TyreSelectionStepProps {
-  vehicle: VehicleSelection | null;
-  initial: TyreTriageResult | null;
-  onContinue: (result: TyreTriageResult) => void;
+  initial: TyrePayload | null;
+  onContinue: (payload: TyrePayload) => void;
   onBack: () => void;
 }
 
-interface SearchResponse {
-  items: TyreSearchResultItem[];
-  count: number;
+interface SizesResponse {
+  sizes: string[];
 }
 
-interface ProblemOption {
-  value: TyreProblemType;
+interface InStockResponse {
+  size: string;
+  items: TyreOption[];
+}
+
+const SIZE_REGEX = /^\d{3}\/\d{2}R\d{2}$/;
+const SIZE_HINT = 'Format: 205/55R16 — three digits, slash, two digits, R, two digits.';
+
+type Phase = 'size' | 'options' | 'wheel-lock';
+
+interface WheelLockOption {
+  value: LockingWheelNutStatus;
   title: string;
-  description: string;
-  defaultJobType: QuoteJobType;
+  description: string | null;
+  warning?: string;
 }
 
-const PROBLEM_OPTIONS: ProblemOption[] = [
+function labelSeason(season: TyreOption['season']): string {
+  switch (season) {
+    case 'summer':
+      return 'Summer';
+    case 'winter':
+      return 'Winter';
+    case 'all_season':
+      return 'All-season';
+    case 'run_flat':
+      return 'Run-flat';
+    case 'commercial':
+      return 'Commercial';
+  }
+}
+
+const WHEEL_LOCK_OPTIONS: WheelLockOption[] = [
   {
-    value: 'PUNCTURE_OR_FLAT',
-    title: 'Puncture or flat tyre',
-    description:
-      "We'll come out, inspect the tyre and repair it on site if it's safe. If it needs replacing, we'll quote that before fitting.",
-    defaultJobType: 'ASSESSMENT',
+    value: 'HAVE_KEY',
+    title: 'I have locking wheel nuts and the key',
+    description: 'Quickest fitting — our driver can use your key on arrival.',
   },
   {
-    value: 'NEEDS_REPLACEMENT',
-    title: 'Replacement tyre',
-    description:
-      "Choose this if you already know the tyre needs replacing. We'll show suitable tyre options before checkout.",
-    defaultJobType: 'REPLACEMENT',
+    value: 'NO_KEY',
+    title: 'I have locking wheel nuts but lost the key',
+    description: 'No problem — we can still help.',
+    warning: 'We may need extra equipment — additional time may apply.',
   },
-];
-
-const TIER_OPTIONS: { value: TyreTier; label: string }[] = [
-  { value: 'budget', label: 'Budget' },
-  { value: 'mid_range', label: 'Mid-range' },
-  { value: 'premium', label: 'Premium' },
-];
-
-const TYPE_OPTIONS: { value: TyreType; label: string }[] = [
-  { value: 'summer', label: 'Summer' },
-  { value: 'winter', label: 'Winter' },
-  { value: 'all_season', label: 'All-season' },
-  { value: 'run_flat', label: 'Run-flat' },
-  { value: 'commercial', label: 'Commercial' },
+  {
+    value: 'STANDARD_ONLY',
+    title: 'Standard nuts only (no locking nuts)',
+    description: 'Standard tools only — straightforward fitting.',
+  },
 ];
 
 export function TyreSelectionStep({
-  vehicle,
   initial,
   onContinue,
   onBack,
 }: TyreSelectionStepProps) {
-  const [problem, setProblem] = useState<TyreProblemType | null>(
-    initial?.tyreProblemType ?? null,
-  );
+  const sizeInputId = useId();
+  const datalistId = `${sizeInputId}-list`;
 
-  const problemOption = problem
-    ? PROBLEM_OPTIONS.find((o) => o.value === problem) ?? null
-    : null;
-  const isReplacement = problemOption?.defaultJobType === 'REPLACEMENT';
+  const [phase, setPhase] = useState<Phase>(() => {
+    if (initial?.lockingWheelNutStatus) return 'wheel-lock';
+    if (initial?.selected) return 'options';
+    return 'size';
+  });
 
-  return (
-    <Stack gap="5">
-      <Stack
-        gap="3"
-        p={{ base: '4', md: '5' }}
-        borderRadius="lg"
-        borderWidth="1px"
-        borderColor="border.subtle"
-        bg="bg.surface"
-      >
-        <Stack gap="1">
-          <Text fontFamily="heading" color="accent.neon" fontSize="lg">
-            What do you need help with?
-          </Text>
-          <Text color="fg.muted" fontSize="sm">
-            Choose the closest option. We&apos;ll keep this quick because it&apos;s an
-            emergency.
-          </Text>
-        </Stack>
-
-        <Grid templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }} gap="3">
-          {PROBLEM_OPTIONS.map((opt) => (
-            <ProblemCard
-              key={opt.value}
-              title={opt.title}
-              description={opt.description}
-              active={problem === opt.value}
-              onClick={() => {
-                setProblem(opt.value);
-                if (opt.defaultJobType === 'ASSESSMENT') {
-                  // Puncture / flat path: skip tyre selection entirely.
-                  onContinue({
-                    jobType: 'ASSESSMENT',
-                    tyreProblemType: opt.value,
-                    selectedTyre: null,
-                    backupTyre: null,
-                  });
-                }
-              }}
-            />
-          ))}
-        </Grid>
-      </Stack>
-
-      <Box
-        p={{ base: '3', md: '4' }}
-        borderRadius="lg"
-        borderWidth="1px"
-        borderColor="border.subtle"
-        bg="bg.surface"
-      >
-        <HStack gap="3" wrap="wrap" justify="space-between" align="center">
-          <Stack gap="0" flex="1" minW="0">
-            <Text fontFamily="heading" color="accent.neon" fontSize="md">
-              Don&apos;t know your tyre size?
-            </Text>
-            <Text color="fg.muted" fontSize="sm">
-              Skip tyre selection — we&apos;ll inspect on site and quote a repair or
-              replacement.
-            </Text>
-          </Stack>
-          <GoldButton
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              onContinue({
-                jobType: 'ASSESSMENT',
-                tyreProblemType: 'NOT_SURE',
-                selectedTyre: null,
-                backupTyre: null,
-              })
-            }
-          >
-            Book without tyre size
-          </GoldButton>
-        </HStack>
-      </Box>
-
-      {isReplacement && problem && (
-        <CatalogPicker
-          vehicle={vehicle}
-          mode="replacement"
-          initialSelected={initial?.selectedTyre ?? null}
-          onContinue={(picked) => {
-            if (!picked) return;
-            onContinue({
-              jobType: 'REPLACEMENT',
-              tyreProblemType: problem,
-              selectedTyre: picked,
-              backupTyre: null,
-            });
-          }}
-        />
-      )}
-
-      <HStack gap="3" wrap="wrap">
-        <GoldButton onClick={onBack} variant="ghost">
-          Back
-        </GoldButton>
-      </HStack>
-    </Stack>
-  );
-}
-
-const CardButton = chakra('button');
-
-function ProblemCard({
-  title,
-  description,
-  active,
-  onClick,
-}: {
-  title: string;
-  description: string;
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <CardButton
-      type="button"
-      onClick={onClick}
-      textAlign="left"
-      p="4"
-      borderRadius="lg"
-      borderWidth="1px"
-      borderColor={active ? 'border.gold' : 'border.subtle'}
-      bg={active ? 'rgba(212,175,55,0.10)' : 'bg.canvas'}
-      cursor="pointer"
-      _hover={{ borderColor: 'border.gold' }}
-    >
-      <Stack gap="1">
-        <Text fontFamily="heading" color={active ? 'accent.neon' : 'fg.default'} fontSize="md">
-          {title}
-        </Text>
-        <Text color="fg.muted" fontSize="sm">
-          {description}
-        </Text>
-      </Stack>
-    </CardButton>
-  );
-}
-
-function AssessmentRecommendCard(_props: {
-  onContinueAssessment: () => void;
-  onShowBackup: () => void;
-}) {
-  // Deprecated: assessment path now skips directly to the location step from
-  // the problem-card click. Component intentionally renders nothing and is
-  // retained only to avoid breaking any external imports.
-  void _props;
-  return null;
-}
-
-interface CatalogPickerProps {
-  vehicle: VehicleSelection | null;
-  mode: 'replacement' | 'backup';
-  initialSelected: SelectedTyre | null;
-  onContinue: (tyre: SelectedTyre | null) => void;
-  onBackToTriage?: () => void;
-}
-
-function CatalogPicker({
-  vehicle,
-  mode,
-  initialSelected,
-  onContinue,
-  onBackToTriage,
-}: CatalogPickerProps) {
-  const initialSize = vehicle?.manualTyreSize ?? '';
-  const [size, setSize] = useState<string>(initialSize);
-  const [tier, setTier] = useState<TyreTier | ''>('');
-  const [type, setType] = useState<TyreType | ''>('');
-  const [items, setItems] = useState<TyreSearchResultItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selected, setSelected] = useState<SelectedTyre | null>(initialSelected);
-
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams();
-    if (size) params.set('sizeLabel', size);
-    if (tier) params.set('tier', tier);
-    if (type) params.set('type', type);
-    params.set('limit', '30');
-    return params.toString();
-  }, [size, tier, type]);
+  // -------- Phase 1: size --------
+  const [size, setSize] = useState<string>(initial?.size ?? '');
+  const [sizeTouched, setSizeTouched] = useState(false);
+  const [knownSizes, setKnownSizes] = useState<string[] | null>(null);
+  const [sizesError, setSizesError] = useState<string | null>(null);
+  const [sizesLoading, setSizesLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    const run = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const res = await fetch(`/api/tyres/search?${queryString}`, { cache: 'no-store' });
-        const data: SearchResponse | { error: string } = await res.json();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSizesLoading(true);
+    setSizesError(null);
+    fetch('/api/tyres/sizes', { cache: 'no-store' })
+      .then(async (res) => {
+        const data = (await res.json().catch(() => ({}))) as Partial<SizesResponse> & {
+          error?: string;
+        };
+        if (cancelled) return;
         if (!res.ok) {
-          if (!cancelled) setError('Could not load tyres.');
+          setSizesError(data.error ?? 'Could not load tyre sizes.');
           return;
         }
-        if (!cancelled) setItems((data as SearchResponse).items);
-      } catch {
-        if (!cancelled) setError('Could not load tyres.');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
-    void run();
+        setKnownSizes(Array.isArray(data.sizes) ? data.sizes : []);
+      })
+      .catch(() => {
+        if (!cancelled) setSizesError('Network error while loading sizes.');
+      })
+      .finally(() => {
+        if (!cancelled) setSizesLoading(false);
+      });
     return () => {
       cancelled = true;
     };
-  }, [queryString]);
+  }, []);
 
-  const titleCopy =
-    mode === 'backup' ? 'Optional backup tyre' : 'Choose your replacement tyre';
-  const helpCopy =
-    mode === 'backup'
-      ? 'If repair is not possible, we will offer this tyre on site. You can also continue without choosing one.'
-      : 'Pick the tyre you want fitted on the callout.';
+  const normalizedSize = size.trim().toUpperCase();
+  const sizeIsValid = SIZE_REGEX.test(normalizedSize);
+
+  // -------- Phase 2: options --------
+  const [optionsLoading, setOptionsLoading] = useState(false);
+  const [optionsError, setOptionsError] = useState<string | null>(null);
+  const [options, setOptions] = useState<TyreOption[]>([]);
+  const [selected, setSelected] = useState<TyreOption | null>(initial?.selected ?? null);
+
+  useEffect(() => {
+    if (phase !== 'options' || !sizeIsValid) return;
+    let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOptionsLoading(true);
+    setOptionsError(null);
+    fetch(`/api/tyres/in-stock?size=${encodeURIComponent(normalizedSize)}`, {
+      cache: 'no-store',
+    })
+      .then(async (res) => {
+        const data = (await res.json().catch(() => ({}))) as Partial<InStockResponse> & {
+          error?: string;
+        };
+        if (cancelled) return;
+        if (!res.ok) {
+          setOptionsError(data.error ?? 'Could not load tyres for that size.');
+          setOptions([]);
+          return;
+        }
+        setOptions(Array.isArray(data.items) ? data.items : []);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setOptionsError('Network error while loading tyres.');
+          setOptions([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setOptionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [phase, normalizedSize, sizeIsValid]);
+
+  // -------- Phase 3: wheel-lock --------
+  const [wheelLock, setWheelLock] = useState<LockingWheelNutStatus | null>(
+    initial?.lockingWheelNutStatus ?? null,
+  );
+
+  const sizeSuggestions = useMemo(() => knownSizes ?? [], [knownSizes]);
+
+  function handleSizeContinue(): void {
+    setSizeTouched(true);
+    if (!sizeIsValid) return;
+    setPhase('options');
+  }
+
+  function handleOptionSelect(option: TyreOption): void {
+    setSelected(option);
+    setPhase('wheel-lock');
+  }
+
+  function handleWheelLockContinue(): void {
+    if (!selected || !wheelLock) return;
+    onContinue({
+      size: normalizedSize,
+      selected,
+      lockingWheelNutStatus: wheelLock,
+    });
+  }
+
+  function handleBack(): void {
+    if (phase === 'wheel-lock') {
+      setPhase('options');
+      return;
+    }
+    if (phase === 'options') {
+      setPhase('size');
+      return;
+    }
+    onBack();
+  }
 
   return (
-    <Stack gap="4">
-      <Stack gap="1">
-        <Text fontFamily="heading" color="accent.neon" fontSize="lg">
-          {titleCopy}
-        </Text>
-        <Text color="fg.muted" fontSize="sm">
-          {helpCopy}
-        </Text>
-      </Stack>
+    <Stack gap="5">
+      {/* Phase 1 — Size */}
+      {phase === 'size' && (
+        <Stack
+          gap="4"
+          p={{ base: '4', md: '5' }}
+          borderRadius="lg"
+          borderWidth="1px"
+          borderColor="border.subtle"
+          bg="bg.surface"
+          transition="opacity 0.2s ease"
+        >
+          <Stack gap="1">
+            <Text fontFamily="heading" color="accent.neon" fontSize="lg">
+              What tyre size do you need?
+            </Text>
+            <Text color="fg.muted" fontSize="sm">
+              You&apos;ll find this on the side of your tyre, e.g. 205/55R16.
+            </Text>
+          </Stack>
 
-      <Stack
-        gap="3"
-        p={{ base: '4', md: '5' }}
-        borderRadius="lg"
-        borderWidth="1px"
-        borderColor="border.subtle"
-        bg="bg.surface"
-      >
-        <Stack gap="2">
-          <Text color="fg.default" fontWeight="600">
-            Tyre size
-          </Text>
-          <Flex gap="2" wrap="wrap">
-            <Chip active={size === ''} onClick={() => setSize('')}>
-              All sizes
-            </Chip>
-            {COMMON_TYRE_SIZES.map((s) => (
-              <Chip key={s} active={size === s} onClick={() => setSize(s)}>
-                {s}
-              </Chip>
-            ))}
-          </Flex>
+          <NoTyreSizeShortcut />
+
+          {sizesLoading ? (
+            <HStack gap="2" color="fg.muted">
+              <Spinner size="sm" />
+              <Text fontSize="sm">Loading available sizes…</Text>
+            </HStack>
+          ) : null}
+
+          <Field.Root invalid={sizeTouched && !sizeIsValid}>
+            <Field.Label color="fg.default" htmlFor={sizeInputId}>
+              Tyre size
+            </Field.Label>
+            <Input
+              id={sizeInputId}
+              list={datalistId}
+              value={size}
+              onChange={(e) => {
+                setSize(e.target.value.toUpperCase());
+                setSizeTouched(true);
+              }}
+              placeholder="e.g. 205/55R16"
+              autoComplete="off"
+              inputMode="text"
+              bg="bg.canvas"
+              borderColor="border.subtle"
+              color="fg.default"
+            />
+            <datalist id={datalistId}>
+              {sizeSuggestions.map((s) => (
+                <option key={s} value={s} />
+              ))}
+            </datalist>
+            <Field.HelperText color="fg.muted">{SIZE_HINT}</Field.HelperText>
+            {sizeTouched && !sizeIsValid && (
+              <Field.ErrorText>That doesn&apos;t look like a tyre size yet.</Field.ErrorText>
+            )}
+          </Field.Root>
+
+          {sizesError && (
+            <Text color="accent.neon" fontSize="xs" role="status">
+              {sizesError}
+            </Text>
+          )}
+
+          <HStack gap="3" wrap="wrap">
+            <GoldButton variant="ghost" onClick={handleBack}>
+              Back
+            </GoldButton>
+            <GoldButton
+              variant="solid"
+              onClick={handleSizeContinue}
+              disabled={!sizeIsValid}
+            >
+              Continue
+            </GoldButton>
+          </HStack>
         </Stack>
-
-        <Stack gap="2">
-          <Text color="fg.default" fontWeight="600">
-            Tier
-          </Text>
-          <Flex gap="2" wrap="wrap">
-            <Chip active={tier === ''} onClick={() => setTier('')}>
-              Any
-            </Chip>
-            {TIER_OPTIONS.map((t) => (
-              <Chip key={t.value} active={tier === t.value} onClick={() => setTier(t.value)}>
-                {t.label}
-              </Chip>
-            ))}
-          </Flex>
-        </Stack>
-
-        <Stack gap="2">
-          <Text color="fg.default" fontWeight="600">
-            Type
-          </Text>
-          <Flex gap="2" wrap="wrap">
-            <Chip active={type === ''} onClick={() => setType('')}>
-              Any
-            </Chip>
-            {TYPE_OPTIONS.map((t) => (
-              <Chip key={t.value} active={type === t.value} onClick={() => setType(t.value)}>
-                {t.label}
-              </Chip>
-            ))}
-          </Flex>
-        </Stack>
-      </Stack>
-
-      {loading && <QuoteLoadingState message="Loading tyre options…" />}
-      {error && <QuoteErrorState message={error} onRetry={() => setSize((s) => s)} />}
-      {!loading && !error && items.length === 0 && (
-        <QuoteEmptyState message="No tyres match these filters yet. Adjust the filters or call us for help." />
       )}
 
-      {!loading && !error && items.length > 0 && (
-        <Box>
-          <Grid
-            templateColumns={{ base: '1fr', md: 'repeat(2, 1fr)' }}
-            gap={{ base: '3', md: '4' }}
-          >
-            {items.map((t) => (
-              <TyreOptionCard
-                key={t.tyreId}
-                tyre={t}
-                selected={selected?.tyreId === t.tyreId}
-                onSelect={(tyre) => setSelected(tyre)}
-              />
-            ))}
-          </Grid>
-        </Box>
+      {/* Phase 2 — Options */}
+      {phase === 'options' && (
+        <Stack
+          gap="4"
+          p={{ base: '4', md: '5' }}
+          borderRadius="lg"
+          borderWidth="1px"
+          borderColor="border.subtle"
+          bg="bg.surface"
+        >
+          <Stack gap="1">
+            <Text fontFamily="heading" color="accent.neon" fontSize="lg">
+              In stock for {normalizedSize}
+            </Text>
+            <Text color="fg.muted" fontSize="sm">
+              We only show tyres we can fit today. Prices include fitting.
+            </Text>
+          </Stack>
+
+          {optionsLoading && (
+            <HStack gap="2" color="fg.muted">
+              <Spinner size="sm" />
+              <Text fontSize="sm">Checking stock…</Text>
+            </HStack>
+          )}
+
+          {!optionsLoading && optionsError && (
+            <Stack
+              gap="2"
+              p="3"
+              borderRadius="md"
+              borderWidth="1px"
+              borderColor="border.subtle"
+              role="alert"
+            >
+              <Text color="accent.neon" fontSize="sm">
+                {optionsError}
+              </Text>
+              <HStack>
+                <GoldButton variant="outline" size="sm" onClick={() => setPhase('size')}>
+                  Pick a different size
+                </GoldButton>
+              </HStack>
+            </Stack>
+          )}
+
+          {!optionsLoading && !optionsError && options.length === 0 && (
+            <Stack
+              gap="2"
+              p="3"
+              borderRadius="md"
+              borderWidth="1px"
+              borderColor="border.subtle"
+            >
+              <Text color="fg.default" fontSize="sm">
+                No tyres in stock for this size — pick another.
+              </Text>
+              <HStack>
+                <GoldButton variant="outline" size="sm" onClick={() => setPhase('size')}>
+                  Back to size
+                </GoldButton>
+              </HStack>
+            </Stack>
+          )}
+
+          {!optionsLoading && options.length > 0 && (
+            <SimpleGrid columns={{ base: 1, md: 2 }} gap="3">
+              {options.map((opt) => (
+                <Stack
+                  key={opt.id}
+                  gap="2"
+                  p="4"
+                  borderRadius="md"
+                  borderWidth="1px"
+                  borderColor={selected?.id === opt.id ? 'border.gold' : 'border.subtle'}
+                  bg="bg.canvas"
+                  transition="border-color 0.2s ease"
+                >
+                  <Stack gap="0">
+                    <Text color="fg.default" fontFamily="heading" fontSize="md">
+                      {opt.brand} {opt.model}
+                    </Text>
+                    <Text color="fg.muted" fontSize="xs">
+                      {labelSeason(opt.season)}
+                    </Text>
+                  </Stack>
+                  <HStack gap="2" wrap="wrap">
+                    {opt.fuelRating && <EuLabel kind="Fuel" value={opt.fuelRating} />}
+                    {opt.wetGrip && <EuLabel kind="Wet" value={opt.wetGrip} />}
+                    {opt.noiseDb !== null && (
+                      <EuLabel kind="Noise" value={`${opt.noiseDb} dB`} />
+                    )}
+                  </HStack>
+                  <HStack justify="space-between" align="center">
+                    <Text color="accent.neon" fontFamily="heading" fontSize="lg">
+                      £{opt.price.toFixed(2)}
+                    </Text>
+                    <GoldButton size="sm" variant="solid" onClick={() => handleOptionSelect(opt)}>
+                      Select
+                    </GoldButton>
+                  </HStack>
+                </Stack>
+              ))}
+            </SimpleGrid>
+          )}
+
+          <HStack gap="3" wrap="wrap">
+            <GoldButton variant="ghost" onClick={handleBack}>
+              Back
+            </GoldButton>
+          </HStack>
+        </Stack>
       )}
 
-      <HStack gap="3" wrap="wrap">
-        {onBackToTriage && (
-          <GoldButton onClick={onBackToTriage} variant="ghost">
-            Back to assessment
-          </GoldButton>
-        )}
-        {mode === 'backup' && (
-          <GoldButton onClick={() => onContinue(null)} variant="outline">
-            Continue without a backup tyre
-          </GoldButton>
-        )}
-        <GoldButton onClick={() => selected && onContinue(selected)} variant="solid">
-          {mode === 'backup'
-            ? 'Continue with this backup tyre'
-            : 'Continue with selected tyre'}
-        </GoldButton>
-      </HStack>
+      {/* Phase 3 — Wheel lock */}
+      {phase === 'wheel-lock' && (
+        <Stack
+          gap="4"
+          p={{ base: '4', md: '5' }}
+          borderRadius="lg"
+          borderWidth="1px"
+          borderColor="border.subtle"
+          bg="bg.surface"
+        >
+          <Stack gap="1">
+            <Text fontFamily="heading" color="accent.neon" fontSize="lg">
+              About your wheel nuts
+            </Text>
+            <Text color="fg.muted" fontSize="sm">
+              This helps our driver bring the right tools.
+            </Text>
+          </Stack>
+
+          <Stack gap="3">
+            {WHEEL_LOCK_OPTIONS.map((opt) => {
+              const active = wheelLock === opt.value;
+              return (
+                <Stack key={opt.value} gap="1">
+                  <ChakraButton
+                    type="button"
+                    onClick={() => setWheelLock(opt.value)}
+                    p="4"
+                    borderRadius="md"
+                    borderWidth="1px"
+                    borderColor={active ? 'border.gold' : 'border.subtle'}
+                    bg={active ? 'bg.surface' : 'bg.canvas'}
+                    textAlign="left"
+                    transition="border-color 0.2s ease, background 0.2s ease"
+                    aria-pressed={active}
+                    cursor="pointer"
+                    width="100%"
+                    display="block"
+                  >
+                    <Text color="fg.default" fontFamily="heading" fontSize="md">
+                      {opt.title}
+                    </Text>
+                    {opt.description && (
+                      <Text color="fg.muted" fontSize="sm" mt="1">
+                        {opt.description}
+                      </Text>
+                    )}
+                  </ChakraButton>
+                  {active && opt.warning && (
+                    <Text color="accent.neon" fontSize="xs" pl="1" role="status">
+                      ⚠ {opt.warning}
+                    </Text>
+                  )}
+                </Stack>
+              );
+            })}
+          </Stack>
+
+          <HStack gap="3" wrap="wrap">
+            <GoldButton variant="ghost" onClick={handleBack}>
+              Back
+            </GoldButton>
+            <GoldButton
+              variant="solid"
+              onClick={handleWheelLockContinue}
+              disabled={!wheelLock || !selected}
+            >
+              Continue
+            </GoldButton>
+          </HStack>
+        </Stack>
+      )}
     </Stack>
   );
 }
 
-interface ChipProps {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}
+const ChakraButton = chakra('button');
 
-const ChipButton = chakra('button');
-
-function Chip({ active, onClick, children }: ChipProps) {
+function EuLabel({ kind, value }: { kind: string; value: string }) {
   return (
-    <ChipButton
-      type="button"
-      onClick={onClick}
-      px="3"
-      py="1.5"
-      borderRadius="full"
+    <Badge
+      bg="bg.canvas"
+      color="fg.muted"
       borderWidth="1px"
-      borderColor={active ? 'border.gold' : 'border.subtle'}
-      bg={active ? 'rgba(212,175,55,0.12)' : 'bg.canvas'}
-      color={active ? 'accent.neon' : 'fg.default'}
-      fontSize="sm"
-      cursor="pointer"
-      _hover={{ borderColor: 'border.gold' }}
+      borderColor="border.subtle"
+      borderRadius="sm"
+      px="2"
+      py="0.5"
+      fontSize="xs"
+      fontWeight="500"
     >
-      {children}
-    </ChipButton>
+      {kind}: {value}
+    </Badge>
   );
 }

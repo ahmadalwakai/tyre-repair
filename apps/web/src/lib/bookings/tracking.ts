@@ -40,6 +40,13 @@ export async function getBookingByTrackingId(
       jobType: schema.bookings.jobType,
       tyreProblemType: schema.bookings.tyreProblemType,
       assessmentFeeGbp: schema.bookings.assessmentFeeGbp,
+      source: schema.bookings.source,
+      fittingMethod: schema.bookings.fittingMethod,
+      quantity: schema.bookings.quantity,
+      scheduledAt: schema.bookings.scheduledAt,
+      slotLabel: schema.bookings.slotLabel,
+      isBackorder: schema.bookings.isBackorder,
+      backorderEtaDays: schema.bookings.backorderEtaDays,
       backupTyreBrand: backupTyre.brand,
       backupTyreModel: backupTyre.model,
       backupTyreSize: backupTyre.sizeLabel,
@@ -112,6 +119,13 @@ export async function getBookingByTrackingId(
     tyreProblemType:
       (row.tyreProblemType as TrackingBookingResult['tyreProblemType']) ?? null,
     assessmentFeeGbp: row.assessmentFeeGbp ? String(row.assessmentFeeGbp) : null,
+    source: row.source ?? null,
+    fittingMethod: row.fittingMethod ?? null,
+    quantity: row.quantity ?? null,
+    scheduledAt: row.scheduledAt ? row.scheduledAt.toISOString() : null,
+    slotLabel: row.slotLabel ?? null,
+    isBackorder: row.isBackorder ?? null,
+    backorderEtaDays: row.backorderEtaDays ?? null,
     backupTyre: row.backupTyreBrand
       ? {
           brand: row.backupTyreBrand,

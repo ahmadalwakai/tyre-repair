@@ -1,4 +1,5 @@
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
+import { Asset } from 'expo-asset';
 import { Platform } from 'react-native';
 
 /**
@@ -125,6 +126,77 @@ const cache: Map<number, CacheEntry> = new Map();
 let audioModeConfigured = false;
 let uiFeedbackEnabled = true;
 
+// --- Web-specific HTMLAudioElement path ----------------------------------
+// expo-av's web shim is unreliable for looping + autoplay-unlock semantics.
+// On web we use HTMLAudioElement directly. We pre-create + prime each cached
+// element inside the first user-gesture handler so the browser keeps the
+// "user activated" flag for subsequent .play() calls.
+const IS_WEB = Platform.OS === 'web' && typeof document !== 'undefined';
+const webAudioByKey: Map<SoundKey, HTMLAudioElement> = new Map();
+let webAudioUnlocked = !IS_WEB;
+const pendingLoopKeys = new Set<SoundKey>();
+
+function resolveAssetUri(asset: number): string | null {
+  try {
+    const a = Asset.fromModule(asset);
+    return a.uri ?? a.localUri ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function ensureWebAudio(key: SoundKey): HTMLAudioElement | null {
+  if (!IS_WEB) return null;
+  const existing = webAudioByKey.get(key);
+  if (existing) return existing;
+  const uri = resolveAssetUri(REGISTRY[key]);
+  if (!uri) return null;
+  const el = new window.Audio(uri);
+  el.preload = 'auto';
+  webAudioByKey.set(key, el);
+  return el;
+}
+
+if (IS_WEB) {
+  const unlock = (): void => {
+    if (webAudioUnlocked) return;
+    webAudioUnlocked = true;
+    document.removeEventListener('pointerdown', unlock, true);
+    document.removeEventListener('keydown', unlock, true);
+    document.removeEventListener('touchstart', unlock, true);
+    // Prime every known sound element inside the gesture so the browser
+    // marks them as user-activated for future programmatic play() calls.
+    for (const key of Object.keys(REGISTRY) as SoundKey[]) {
+      const el = ensureWebAudio(key);
+      if (!el) continue;
+      const audioEl = el;
+      audioEl.muted = true;
+      const p = audioEl.play();
+      if (p && typeof p.then === 'function') {
+        p.then(() => {
+          audioEl.pause();
+          audioEl.currentTime = 0;
+          audioEl.muted = false;
+        }).catch(() => {
+          audioEl.muted = false;
+        });
+      } else {
+        try { audioEl.pause(); } catch { /* ignore */ }
+        audioEl.muted = false;
+      }
+    }
+    // Replay any loops that were requested before the unlock.
+    const queued = Array.from(pendingLoopKeys);
+    pendingLoopKeys.clear();
+    for (const k of queued) {
+      void playSoundLoop(k);
+    }
+  };
+  document.addEventListener('pointerdown', unlock, true);
+  document.addEventListener('keydown', unlock, true);
+  document.addEventListener('touchstart', unlock, true);
+}
+
 async function configureAudioModeOnce(): Promise<void> {
   if (audioModeConfigured) return;
   try {
@@ -173,6 +245,23 @@ export async function playSound(
 ): Promise<void> {
   if (!uiFeedbackEnabled) return;
   if (Platform.OS !== 'android' && Platform.OS !== 'ios' && Platform.OS !== 'web') return;
+  if (IS_WEB) {
+    if (!webAudioUnlocked) return; // can't play before first gesture
+    const el = ensureWebAudio(key);
+    if (!el) return;
+    try {
+      el.loop = false;
+      if (options.volume !== undefined) {
+        el.volume = Math.max(0, Math.min(1, options.volume));
+      }
+      el.currentTime = 0;
+      const p = el.play();
+      if (p && typeof p.catch === 'function') p.catch(() => { /* ignore */ });
+    } catch {
+      // ignore
+    }
+    return;
+  }
   const asset = REGISTRY[key];
   const sound = await ensure(asset);
   if (!sound) return;
@@ -199,6 +288,23 @@ export async function playSound(
 export async function playSoundLoop(key: SoundKey): Promise<void> {
   if (!uiFeedbackEnabled) return;
   if (Platform.OS !== 'android' && Platform.OS !== 'ios' && Platform.OS !== 'web') return;
+  if (IS_WEB) {
+    if (!webAudioUnlocked) {
+      pendingLoopKeys.add(key);
+      return;
+    }
+    const el = ensureWebAudio(key);
+    if (!el) return;
+    try {
+      el.loop = true;
+      el.currentTime = 0;
+      const p = el.play();
+      if (p && typeof p.catch === 'function') p.catch(() => { /* ignore */ });
+    } catch {
+      // ignore
+    }
+    return;
+  }
   const asset = REGISTRY[key];
   const sound = await ensure(asset);
   if (!sound) return;
@@ -214,6 +320,19 @@ export async function playSoundLoop(key: SoundKey): Promise<void> {
 }
 
 export async function stopSound(key: SoundKey): Promise<void> {
+  pendingLoopKeys.delete(key);
+  if (IS_WEB) {
+    const el = webAudioByKey.get(key);
+    if (!el) return;
+    try {
+      el.pause();
+      el.loop = false;
+      el.currentTime = 0;
+    } catch {
+      // ignore
+    }
+    return;
+  }
   const asset = REGISTRY[key];
   const entry = cache.get(asset);
   if (!entry) return;
@@ -228,6 +347,18 @@ export async function stopSound(key: SoundKey): Promise<void> {
 
 /** Unload every cached sound. Call on user sign-out. */
 export async function unloadAllSounds(): Promise<void> {
+  if (IS_WEB) {
+    for (const el of webAudioByKey.values()) {
+      try {
+        el.pause();
+        el.src = '';
+      } catch {
+        // ignore
+      }
+    }
+    webAudioByKey.clear();
+    return;
+  }
   const entries = Array.from(cache.values());
   cache.clear();
   await Promise.all(

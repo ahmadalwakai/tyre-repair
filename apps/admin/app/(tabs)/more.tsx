@@ -20,9 +20,19 @@ export default function MoreScreen(): React.JSX.Element {
       <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 32 }}>
         <MoreMenuSection title="Operations">
           <MoreMenuItem
+            label="Search"
+            description="Find a booking, customer, phone or registration"
+            href="/search"
+          />
+          <MoreMenuItem
             label="Quick booking"
             description="Create a phone booking in seconds"
             href="/quick-booking"
+          />
+          <MoreMenuItem
+            label="Incoming leads"
+            description="Website calls, emergency assists and callbacks"
+            href="/incoming-leads"
           />
           <MoreMenuItem
             label="Callbacks"
@@ -87,6 +97,16 @@ export default function MoreScreen(): React.JSX.Element {
             label="Audit logs"
             description="Sensitive admin actions history"
             href="/audit"
+          />
+          <MoreMenuItem
+            label="Diagnostics"
+            description="Connection, sound and environment checks"
+            href="/diagnostics"
+          />
+          <MoreMenuItem
+            label="Outbox"
+            description="Pending safe actions waiting to send"
+            href="/outbox"
           />
           <MoreMenuItem
             label="Operational settings"

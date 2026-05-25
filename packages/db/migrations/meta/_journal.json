@@ -29,6 +29,20 @@
       "when": 1778114580168,
       "tag": "0003_quiet_bastion",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1778125382171,
+      "tag": "0004_noisy_green_goblin",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1778166302774,
+      "tag": "0005_long_mimic",
+      "breakpoints": true
     }
   ]
 }

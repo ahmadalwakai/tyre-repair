@@ -43,6 +43,9 @@ export async function GET(req: Request): Promise<NextResponse> {
       tyreProblemType: schema.callClickEvents.tyreProblemType,
       jobType: schema.callClickEvents.jobType,
       locationSummary: schema.callClickEvents.locationSummary,
+      networkCity: schema.callClickEvents.networkCity,
+      networkRegion: schema.callClickEvents.networkRegion,
+      networkCountry: schema.callClickEvents.networkCountry,
       createdAt: schema.callClickEvents.createdAt,
     })
     .from(schema.callClickEvents)
@@ -69,6 +72,9 @@ export async function GET(req: Request): Promise<NextResponse> {
     tyreProblemType: r.tyreProblemType,
     jobType: r.jobType,
     locationSummary: r.locationSummary,
+    networkCity: r.networkCity,
+    networkRegion: r.networkRegion,
+    networkCountry: r.networkCountry,
     createdAt: r.createdAt.toISOString(),
   }));
 

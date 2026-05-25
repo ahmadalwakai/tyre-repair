@@ -4,6 +4,7 @@ import { GoldButton } from '@/components/ui/GoldButton';
 import { GoldCard } from '@/components/ui/GoldCard';
 import { GoldInput } from '@/components/ui/GoldInput';
 import { useToast } from '@/components/ui/Toast';
+import { NoteTemplateChips } from '@/components/notes/NoteTemplateChips';
 import {
   createInternalNote,
   deleteInternalNote,
@@ -110,6 +111,16 @@ export function InternalNotesPanel({
           value={body}
           onChangeText={setBody}
           multiline
+        />
+        <NoteTemplateChips
+          disabled={submitting}
+          onPick={(template) =>
+            setBody((prev) =>
+              prev.trim().length === 0
+                ? template
+                : `${prev.trimEnd()}\n${template}`,
+            )
+          }
         />
         <View className="flex-row flex-wrap gap-1 mt-2">
           {NOTE_TYPES.map((t) => (

@@ -72,6 +72,12 @@ interface BookingContext {
   locationLatitude: string | null;
   locationLongitude: string | null;
   quoteCreatedAt: Date | null;
+  source: string | null;
+  fittingMethod: 'GARAGE' | 'HOME' | null;
+  quantity: number | null;
+  scheduledAt: Date | null;
+  slotLabel: string | null;
+  isBackorder: boolean | null;
 }
 
 async function loadByPaymentIntentId(
@@ -114,6 +120,12 @@ async function loadByPaymentIntentId(
       locationLatitude: schema.customerLocations.latitude,
       locationLongitude: schema.customerLocations.longitude,
       quoteCreatedAt: schema.quotes.createdAt,
+      source: schema.bookings.source,
+      fittingMethod: schema.bookings.fittingMethod,
+      quantity: schema.bookings.quantity,
+      scheduledAt: schema.bookings.scheduledAt,
+      slotLabel: schema.bookings.slotLabel,
+      isBackorder: schema.bookings.isBackorder,
     })
     .from(schema.payments)
     .leftJoin(schema.bookings, eq(schema.bookings.id, schema.payments.bookingId))
@@ -166,6 +178,12 @@ async function loadByPaymentIntentId(
     locationLatitude: r.locationLatitude ? String(r.locationLatitude) : null,
     locationLongitude: r.locationLongitude ? String(r.locationLongitude) : null,
     quoteCreatedAt: r.quoteCreatedAt ?? null,
+    source: r.source ?? null,
+    fittingMethod: (r.fittingMethod as 'GARAGE' | 'HOME' | null) ?? null,
+    quantity: r.quantity ?? null,
+    scheduledAt: r.scheduledAt ?? null,
+    slotLabel: r.slotLabel ?? null,
+    isBackorder: r.isBackorder ?? null,
   };
 }
 
@@ -573,6 +591,12 @@ async function handleDepositPaymentSucceeded(
     longitude: ctx.locationLongitude ? Number(ctx.locationLongitude) : null,
     paymentMode: 'DEPOSIT',
     quoteCreatedAt: ctx.quoteCreatedAt ? ctx.quoteCreatedAt.toISOString() : null,
+    source: ctx.source,
+    fittingMethod: ctx.fittingMethod,
+    quantity: ctx.quantity,
+    scheduledAt: ctx.scheduledAt ? ctx.scheduledAt.toISOString() : null,
+    slotLabel: ctx.slotLabel,
+    isBackorder: ctx.isBackorder,
   };
   await safeTrigger(ADMIN_CHANNEL, 'booking.created', bookingCreatedPayload);
 
@@ -959,6 +983,12 @@ async function handlePaymentSucceeded(intent: Stripe.PaymentIntent, event: Strip
     longitude: ctx.locationLongitude ? Number(ctx.locationLongitude) : null,
     paymentMode: 'FULL',
     quoteCreatedAt: ctx.quoteCreatedAt ? ctx.quoteCreatedAt.toISOString() : null,
+    source: ctx.source,
+    fittingMethod: ctx.fittingMethod,
+    quantity: ctx.quantity,
+    scheduledAt: ctx.scheduledAt ? ctx.scheduledAt.toISOString() : null,
+    slotLabel: ctx.slotLabel,
+    isBackorder: ctx.isBackorder,
   };
   await safeTrigger(ADMIN_CHANNEL, 'booking.created', bookingCreatedPayload);
 

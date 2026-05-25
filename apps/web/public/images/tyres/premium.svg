@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-label="Premium tyre on alloy wheel">
+  <defs>
+    <radialGradient id="tyreBody" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#3a3a3a"/>
+      <stop offset="55%" stop-color="#1a1a1a"/>
+      <stop offset="100%" stop-color="#050505"/>
+    </radialGradient>
+    <radialGradient id="sidewall" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#262626"/>
+      <stop offset="100%" stop-color="#0c0c0c"/>
+    </radialGradient>
+    <radialGradient id="alloy" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#f1f3f5"/>
+      <stop offset="55%" stop-color="#9aa0a6"/>
+      <stop offset="100%" stop-color="#3a3f44"/>
+    </radialGradient>
+    <radialGradient id="hub" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#d8dbe0"/>
+      <stop offset="100%" stop-color="#2c3035"/>
+    </radialGradient>
+    <linearGradient id="goldRing" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f7d77a"/>
+      <stop offset="50%" stop-color="#c79a36"/>
+      <stop offset="100%" stop-color="#7a5d12"/>
+    </linearGradient>
+    <radialGradient id="floorShadow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#000" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- ground shadow -->
+  <ellipse cx="300" cy="560" rx="240" ry="22" fill="url(#floorShadow)"/>
+
+  <!-- outer tyre -->
+  <circle cx="300" cy="300" r="285" fill="url(#tyreBody)"/>
+
+  <!-- tread blocks (36 around) -->
+  <g fill="#0a0a0a" stroke="#1d1d1d" stroke-width="1">
+    <!-- generated tread pattern -->
+    <g transform="translate(300 300)">
+      <!-- 36 tread blocks at 10deg increments -->
+      <g>
+        <!-- block template repeated by rotation; use polygon approximations -->
+        <!-- For simplicity, draw thin rectangles tangent to circle at r=252 -->
+      </g>
+    </g>
+  </g>
+
+  <!-- circumferential tread channels -->
+  <circle cx="300" cy="300" r="278" fill="none" stroke="#000" stroke-width="2"/>
+  <circle cx="300" cy="300" r="262" fill="none" stroke="#000" stroke-width="3"/>
+  <circle cx="300" cy="300" r="244" fill="none" stroke="#000" stroke-width="3"/>
+  <circle cx="300" cy="300" r="228" fill="none" stroke="#000" stroke-width="2"/>
+
+  <!-- tread blocks via dashed stroke ring -->
+  <circle cx="300" cy="300" r="253" fill="none" stroke="#000" stroke-width="22"
+          stroke-dasharray="14 8" opacity="0.85"/>
+  <circle cx="300" cy="300" r="236" fill="none" stroke="#0a0a0a" stroke-width="14"
+          stroke-dasharray="10 6" transform="rotate(5 300 300)"/>
+
+  <!-- sidewall ring -->
+  <circle cx="300" cy="300" r="218" fill="url(#sidewall)"/>
+  <circle cx="300" cy="300" r="218" fill="none" stroke="#2a2a2a" stroke-width="2"/>
+
+  <!-- sidewall embossed text -->
+  <g fill="#cfcfcf" font-family="Inter, Arial, sans-serif" font-weight="700" opacity="0.55">
+    <path id="sidewallTextPath" d="M 110 300 a 190 190 0 1 1 380 0" fill="none"/>
+    <text font-size="20" letter-spacing="6">
+      <textPath href="#sidewallTextPath" startOffset="6%">TYREREPAIR UK · PREMIUM PERFORMANCE</textPath>
+    </text>
+  </g>
+
+  <!-- inner sidewall edge -->
+  <circle cx="300" cy="300" r="190" fill="#0a0a0a"/>
+  <circle cx="300" cy="300" r="190" fill="none" stroke="#1c1c1c" stroke-width="2"/>
+
+  <!-- alloy outer lip with gold accent -->
+  <circle cx="300" cy="300" r="180" fill="url(#goldRing)"/>
+  <circle cx="300" cy="300" r="172" fill="url(#alloy)"/>
+
+  <!-- spokes (5) -->
+  <g transform="translate(300 300)" fill="url(#alloy)" stroke="#2c3035" stroke-width="2" stroke-linejoin="round">
+    <g>
+      <polygon points="-18,-30 18,-30 60,-160 -60,-160"/>
+    </g>
+    <g transform="rotate(72)">
+      <polygon points="-18,-30 18,-30 60,-160 -60,-160"/>
+    </g>
+    <g transform="rotate(144)">
+      <polygon points="-18,-30 18,-30 60,-160 -60,-160"/>
+    </g>
+    <g transform="rotate(216)">
+      <polygon points="-18,-30 18,-30 60,-160 -60,-160"/>
+    </g>
+    <g transform="rotate(288)">
+      <polygon points="-18,-30 18,-30 60,-160 -60,-160"/>
+    </g>
+  </g>
+
+  <!-- spoke highlights -->
+  <g transform="translate(300 300)" fill="#ffffff" opacity="0.18">
+    <g><polygon points="-4,-40 4,-40 14,-150 -14,-150"/></g>
+    <g transform="rotate(72)"><polygon points="-4,-40 4,-40 14,-150 -14,-150"/></g>
+    <g transform="rotate(144)"><polygon points="-4,-40 4,-40 14,-150 -14,-150"/></g>
+    <g transform="rotate(216)"><polygon points="-4,-40 4,-40 14,-150 -14,-150"/></g>
+    <g transform="rotate(288)"><polygon points="-4,-40 4,-40 14,-150 -14,-150"/></g>
+  </g>
+
+  <!-- center hub -->
+  <circle cx="300" cy="300" r="58" fill="url(#hub)" stroke="#1c1c1c" stroke-width="2"/>
+  <circle cx="300" cy="300" r="46" fill="#111" stroke="#3a3f44" stroke-width="1"/>
+  <!-- lug nuts -->
+  <g fill="#d8dbe0" stroke="#1c1c1c" stroke-width="1">
+    <circle cx="300" cy="262" r="6"/>
+    <circle cx="336" cy="289" r="6"/>
+    <circle cx="322" cy="333" r="6"/>
+    <circle cx="278" cy="333" r="6"/>
+    <circle cx="264" cy="289" r="6"/>
+  </g>
+  <!-- center cap with subtle gold dot -->
+  <circle cx="300" cy="300" r="14" fill="#1a1a1a" stroke="#c79a36" stroke-width="1.5"/>
+  <circle cx="300" cy="300" r="5" fill="#c79a36"/>
+
+  <!-- top sheen on tyre -->
+  <path d="M 90 240 A 220 220 0 0 1 510 240" stroke="#ffffff" stroke-width="6" fill="none" opacity="0.06"/>
+</svg>

@@ -39,12 +39,26 @@ const NEXT: Record<Phase, Phase> = {
 export function HeroRepairVisual() {
   const reduce = useReducedMotion();
   const [phase, setPhase] = useState<Phase>('idle');
+  const [cyclesDone, setCyclesDone] = useState(0);
+  const MAX_CYCLES = 3;
 
   useEffect(() => {
     if (reduce) return;
-    const id = window.setTimeout(() => setPhase((p) => NEXT[p]), TIMINGS[phase]);
+    if (cyclesDone >= MAX_CYCLES && phase === 'repaired') {
+      // Hold the final repaired state instead of looping forever.
+      return;
+    }
+    const id = window.setTimeout(() => {
+      setPhase((p) => {
+        const next = NEXT[p];
+        if (p === 'repaired') {
+          setCyclesDone((c) => c + 1);
+        }
+        return next;
+      });
+    }, TIMINGS[phase]);
     return () => window.clearTimeout(id);
-  }, [phase, reduce]);
+  }, [phase, reduce, cyclesDone]);
 
   const showArrow = !reduce && (phase === 'arrow' || phase === 'repaired');
   const showRepaired = reduce || phase === 'repaired';

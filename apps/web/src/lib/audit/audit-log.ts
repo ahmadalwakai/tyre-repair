@@ -47,6 +47,8 @@ export type AuditAction =
   | 'booking.location_request.sent'
   | 'booking.tracking_link.sent'
   | 'booking.note.added'
+  | 'booking.attachment.uploaded'
+  | 'booking.attachment.deleted'
   | 'booking.no_answer.marked'
   | 'booking.dispatch_checklist.completed'
   // payment

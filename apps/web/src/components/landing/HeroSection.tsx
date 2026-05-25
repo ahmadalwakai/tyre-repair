@@ -9,21 +9,29 @@ import {
   Stack,
   Text,
   Wrap,
+  Button,
 } from '@chakra-ui/react';
-import { FiClock, FiMapPin, FiTool, FiTruck } from 'react-icons/fi';
+import { useState } from 'react';
+import { FiClock, FiHelpCircle, FiMapPin, FiTool, FiTruck } from 'react-icons/fi';
+import { FaWhatsapp } from 'react-icons/fa';
 import { siteConfig } from '@/lib/site-config';
 import { GoldBadge } from '@/components/ui/GoldBadge';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { HeroRepairVisual } from '@/components/landing/HeroRepairVisual';
+import { WhatsAppQuickHelpSheet } from '@/components/mobile/WhatsAppQuickHelpSheet';
+import { defaultEmergencyHref } from '@/lib/contact/whatsapp-options';
 
 const TRUST_BULLETS = [
   { label: '24/7 emergency help', icon: <FiClock /> },
   { label: 'We come to you', icon: <FiTruck /> },
   { label: 'Repair-first assessment', icon: <FiTool /> },
   { label: 'Scotland-wide coverage', icon: <FiMapPin /> },
+  { label: "No tyre size? We'll assess on site", icon: <FiHelpCircle /> },
 ] as const;
 
 export function HeroSection() {
+  const [whatsappSheetOpen, setWhatsappSheetOpen] = useState(false);
+
   return (
     <Box as="section" position="relative" overflow="hidden" bg="bg.canvas">
       {/* Ambient gold glow */}
@@ -83,14 +91,33 @@ export function HeroSection() {
                 <GoldButton href={siteConfig.primaryCtaHref} variant="outline" size="lg">
                   {siteConfig.primaryCtaLabel}
                 </GoldButton>
-                <GoldButton
-                  href={siteConfig.whatsappHref}
-                  variant="ghost"
+                <Button
                   size="lg"
-                  isExternal
+                  onClick={() => setWhatsappSheetOpen(true)}
+                  aria-label={siteConfig.whatsappCtaLabel}
+                  bg="#25D366"
+                  color="white"
+                  borderRadius="lg"
+                  fontWeight="600"
+                  minH="52px"
+                  px="6"
+                  _hover={{ bg: '#1DA851', boxShadow: 'glowSoft' }}
+                  _active={{ bg: '#178D44' }}
                 >
+                  <FaWhatsapp aria-hidden style={{ marginRight: '8px' }} />
                   {siteConfig.whatsappCtaLabel}
-                </GoldButton>
+                </Button>
+                {/* JS-disabled fallback so the WhatsApp link still works. */}
+                <noscript>
+                  <a
+                    href={defaultEmergencyHref()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: '#FFD700' }}
+                  >
+                    {siteConfig.whatsappCtaLabel}
+                  </a>
+                </noscript>
               </Flex>
 
               <Wrap gap="2" pt="2">
@@ -111,6 +138,10 @@ export function HeroSection() {
           </GridItem>
         </Grid>
       </Container>
+      <WhatsAppQuickHelpSheet
+        open={whatsappSheetOpen}
+        onOpenChange={setWhatsappSheetOpen}
+      />
     </Box>
   );
 }

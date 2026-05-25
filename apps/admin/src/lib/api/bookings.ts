@@ -32,6 +32,8 @@ export interface BookingListQuery {
   createdTo?: string;
   page?: number;
   pageSize?: number;
+  /** Buy Tyres source filter. */
+  source?: 'all' | 'tyre_shop' | 'emergency' | 'admin_phone' | 'public_quote';
 }
 
 export function listBookings(q: BookingListQuery = {}): Promise<BookingListResponse> {

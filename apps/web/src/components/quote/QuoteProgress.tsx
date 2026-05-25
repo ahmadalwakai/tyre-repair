@@ -1,20 +1,23 @@
 'use client';
 import { Box, Flex, Stack, Text } from '@chakra-ui/react';
-import type { QuoteFlowStep } from '@/types/quote';
-
-const STEPS: { key: QuoteFlowStep; label: string }[] = [
-  { key: 'vehicle', label: 'Vehicle' },
-  { key: 'tyre', label: 'Tyres' },
-  { key: 'location', label: 'Location' },
-  { key: 'quote', label: 'Quote' },
-];
+import {
+  QUOTE_STEPS,
+  STEP_META,
+  getStepIndex,
+  type QuoteStep,
+} from '@/lib/quote/steps';
 
 export interface QuoteProgressProps {
-  current: QuoteFlowStep;
+  current: QuoteStep;
 }
 
+/**
+ * Quote-flow stepper. Renders one pill per step in `QUOTE_STEPS`, with a
+ * mobile-first horizontal layout. The list of steps and their labels are
+ * sourced from `@/lib/quote/steps` — never hardcoded here.
+ */
 export function QuoteProgress({ current }: QuoteProgressProps) {
-  const currentIndex = STEPS.findIndex((s) => s.key === current);
+  const currentIndex = getStepIndex(current);
   return (
     <Flex
       as="nav"
@@ -27,11 +30,21 @@ export function QuoteProgress({ current }: QuoteProgressProps) {
       bg="bg.surface"
       p={{ base: '3', md: '4' }}
     >
-      {STEPS.map((s, i) => {
+      {QUOTE_STEPS.map((step, i) => {
         const isActive = i === currentIndex;
         const isDone = i < currentIndex;
+        const meta = STEP_META[step];
         return (
-          <Flex key={s.key} align="center" gap="2" flex={{ md: '1' }} minW="0">
+          <Flex
+            key={step}
+            align="center"
+            gap="2"
+            flex={{ md: '1' }}
+            minW="0"
+            transition="opacity 0.2s ease"
+            opacity={isActive || isDone ? 1 : 0.6}
+            {...(isActive ? { 'aria-current': 'step' as const } : {})}
+          >
             <Box
               w="7"
               h="7"
@@ -46,8 +59,10 @@ export function QuoteProgress({ current }: QuoteProgressProps) {
               fontWeight="700"
               fontSize="sm"
               flexShrink={0}
+              transition="background 0.2s ease, color 0.2s ease"
+              aria-hidden
             >
-              {i + 1}
+              {isDone ? '✓' : i + 1}
             </Box>
             <Stack gap="0">
               <Text
@@ -55,7 +70,7 @@ export function QuoteProgress({ current }: QuoteProgressProps) {
                 fontWeight="600"
                 color={isActive ? 'accent.neon' : 'fg.default'}
               >
-                {s.label}
+                {meta.progressLabel}
               </Text>
             </Stack>
           </Flex>

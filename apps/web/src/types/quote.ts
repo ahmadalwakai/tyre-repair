@@ -1,7 +1,11 @@
 /**
- * Phase 4 quote flow types.
+ * Quote flow types.
  * No `any`. All values are explicit string unions where applicable.
  */
+
+// Step config is owned by `@/lib/quote/steps`. Re-exported here so existing
+// imports from `@/types/quote` keep working.
+export type { QuoteStep } from '@/lib/quote/steps';
 
 export type TyreTier = 'budget' | 'mid_range' | 'premium';
 export type TyreType = 'summer' | 'winter' | 'all_season' | 'run_flat' | 'commercial';
@@ -23,18 +27,12 @@ export interface BackupTyreSummary {
   sizeLabel: string;
 }
 
-export type QuoteFlowStep = 'vehicle' | 'tyre' | 'location' | 'quote';
-
 export type LocationCaptureMethod =
   | 'manual_address'
   | 'mapbox_autocomplete'
   | 'sms_link'
   | 'email_link'
   | 'browser_geolocation';
-
-export interface VehicleLookupForm {
-  vehicleRegistration: string;
-}
 
 export interface VehicleLookupResult {
   registration: string;
@@ -52,14 +50,6 @@ export interface ManualVehicleInput {
   manualTyreSize?: string;
   vehicleMake?: string;
   vehicleModel?: string;
-}
-
-export interface VehicleSelection {
-  registration: string | null;
-  make: string | null;
-  model: string | null;
-  year: number | null;
-  manualTyreSize: string | null;
 }
 
 export interface TyreSearchFilters {
@@ -100,12 +90,41 @@ export interface TyreSearchResultItem {
 
 export type SelectedTyre = TyreSearchResultItem;
 
+/**
+ * Public alias used by the new 3-step quote flow. A TyreOption is the
+ * customer-visible shape returned by `/api/tyres/in-stock`.
+ */
+export interface TyreOption {
+  id: string;
+  brand: string;
+  model: string;
+  price: number;
+  season: TyreType;
+  fuelRating: string | null;
+  wetGrip: string | null;
+  noiseDb: number | null;
+  stock: number;
+}
+
+/**
+ * Payload dispatched by the tyre step into the QuoteFlow reducer.
+ */
+export interface TyrePayload {
+  size: string;
+  selected: TyreOption;
+  lockingWheelNutStatus: 'HAVE_KEY' | 'NO_KEY' | 'STANDARD_ONLY';
+}
+
 export interface ManualAddressInput {
   addressLine1: string;
   addressLine2?: string;
   city: string;
   postcode: string;
   country?: string;
+  /** Set when the address was selected from Mapbox autocomplete suggestions. */
+  latitude?: number;
+  longitude?: number;
+  mapboxPlaceId?: string;
 }
 
 export interface CapturedLocation {
@@ -121,6 +140,13 @@ export interface CapturedLocation {
   accuracyMeters?: number;
   locationId?: string;
 }
+
+/**
+ * Re-exported address shape used by the new flow. The captured-location
+ * structure already carries everything we need (method, lat/long, address
+ * fields), so we alias rather than introduce a parallel type.
+ */
+export type AddressData = CapturedLocation;
 
 export interface SendLocationLinkInput {
   method: 'sms' | 'email';
@@ -151,6 +177,9 @@ export interface CreateQuoteInput {
   customerPhone?: string;
   customerEmail?: string;
   customerName?: string;
+  /** Customer's locking-wheel-nut answer captured in the tyre step.
+   * Persisted with the quote so /checkout can pre-fill without a URL leak. */
+  lockingWheelNutStatus?: 'HAVE_KEY' | 'NO_KEY' | 'STANDARD_ONLY';
 }
 
 /** @deprecated Phase 4 placeholder shape. Phase 5 uses DynamicPricing. */

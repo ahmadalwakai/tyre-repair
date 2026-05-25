@@ -10,12 +10,26 @@ export interface ScreenHeaderProps {
 
 export function ScreenHeader({ title, subtitle, right }: ScreenHeaderProps): React.JSX.Element {
   return (
-    <View className="flex-row items-center justify-between px-5 pt-4 pb-3 bg-canvas border-b border-border">
+    <View className="flex-row items-center justify-between px-4 pt-4 pb-3 bg-canvas border-b border-border">
       <View className="flex-1 pr-3">
-        <Text className="text-text text-2xl font-bold">{title}</Text>
-        {subtitle ? <Text className="text-text-muted text-sm mt-1">{subtitle}</Text> : null}
+        <Text
+          className="text-text text-2xl font-bold"
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text
+            className="text-text-muted text-sm mt-1"
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
+            {subtitle}
+          </Text>
+        ) : null}
       </View>
-      {right ? <View>{right}</View> : null}
+      {right ? <View className="shrink-0">{right}</View> : null}
     </View>
   );
 }

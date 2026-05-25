@@ -66,6 +66,11 @@ export const tyreProblemTypeSchema = z.enum([
   'NOT_SURE',
 ]);
 export const quoteJobTypeSchema = z.enum(['ASSESSMENT', 'REPLACEMENT']);
+export const lockingWheelNutStatusSchema = z.enum([
+  'HAVE_KEY',
+  'NO_KEY',
+  'STANDARD_ONLY',
+]);
 
 export const quoteCreateSchema = z
   .object({
@@ -82,6 +87,10 @@ export const quoteCreateSchema = z
     customerPhone: z.string().regex(phoneRegex).optional(),
     customerEmail: emailSchema.optional(),
     customerName: z.string().min(1).max(160).optional(),
+    /** Customer's answer to the locking-wheel-nut question from the tyre
+     * step. Persisted alongside the quote (in pricingBreakdown JSON) so
+     * checkout can pre-fill without leaking the value through the URL. */
+    lockingWheelNutStatus: lockingWheelNutStatusSchema.optional(),
   })
   .superRefine((v, ctx) => {
     if (v.jobType === 'REPLACEMENT' && !v.tyreId) {

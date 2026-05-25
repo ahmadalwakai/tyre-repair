@@ -7,13 +7,18 @@
     "scheme": "tyrerepairadmin",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "icon": "./assets/images/icon.png",
     "android": {
       "package": "uk.tyrerepair.admin",
       "versionCode": 1,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#0B0B0F"
       }
+    },
+    "web": {
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",

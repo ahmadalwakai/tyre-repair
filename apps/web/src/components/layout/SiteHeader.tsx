@@ -6,12 +6,13 @@ import {
   Flex,
   HStack,
   IconButton,
+  Image,
   Portal,
   Stack,
   Text,
 } from '@chakra-ui/react';
 import NextLink from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FiMenu, FiPhone } from 'react-icons/fi';
 import { reportCallClick } from '@/lib/lead-events/call-click';
 import { siteConfig } from '@/lib/site-config';
@@ -19,6 +20,7 @@ import type { LandingNavItem } from '@/types/landing';
 import { GoldButton } from '@/components/ui/GoldButton';
 
 const NAV_ITEMS: readonly LandingNavItem[] = [
+  { label: 'Buy tyres', href: '/tyres' },
   { label: 'Services', href: '/services' },
   { label: 'Coverage', href: '/coverage' },
   { label: 'Locations', href: '/locations' },
@@ -27,6 +29,15 @@ const NAV_ITEMS: readonly LandingNavItem[] = [
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const onScroll = () => setScrolled(window.scrollY > 100);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
     <Box
@@ -43,26 +54,43 @@ export function SiteHeader() {
         maxW="7xl"
         mx="auto"
         px={{ base: '4', md: '6' }}
-        py="3"
+        py={{ base: scrolled ? '1.5' : '3', md: '3' }}
         align="center"
         justify="space-between"
         gap="4"
+        transition="padding 200ms ease"
       >
         <NextLink href="/" aria-label={`${siteConfig.businessName} home`}>
-          <Stack gap="0">
-            <Text
-              fontFamily="heading"
-              fontSize={{ base: 'lg', md: 'xl' }}
-              color="accent.neon"
-              lineHeight="1.1"
-              letterSpacing="wide"
-            >
-              {siteConfig.businessName}
-            </Text>
-            <Text fontSize="2xs" color="fg.muted" textTransform="uppercase" letterSpacing="0.18em">
-              {siteConfig.tagline}
-            </Text>
-          </Stack>
+          <HStack gap="3" align="center">
+            <Image
+              src="/images/brand/tyrerepair-emblem.png"
+              alt=""
+              boxSize={{ base: scrolled ? '28px' : '36px', md: '44px' }}
+              borderRadius="full"
+              loading="eager"
+              transition="all 200ms ease"
+            />
+            <Stack gap="0">
+              <Text
+                fontFamily="heading"
+                fontSize={{ base: scrolled ? 'md' : 'lg', md: 'xl' }}
+                color="accent.neon"
+                lineHeight="1.1"
+                letterSpacing="wide"
+              >
+                {siteConfig.businessName}
+              </Text>
+              <Text
+                fontSize="2xs"
+                color="fg.muted"
+                textTransform="uppercase"
+                letterSpacing="0.18em"
+                display={{ base: scrolled ? 'none' : 'block', md: 'block' }}
+              >
+                {siteConfig.tagline}
+              </Text>
+            </Stack>
+          </HStack>
         </NextLink>
 
         <HStack gap="6" display={{ base: 'none', md: 'flex' }}>
@@ -104,7 +132,32 @@ export function SiteHeader() {
           </GoldButton>
         </HStack>
 
-        <Box display={{ base: 'block', md: 'none' }}>
+        <HStack gap="1" display={{ base: 'flex', md: 'none' }}>
+          <a
+            href={siteConfig.phoneHref}
+            aria-label={`Call ${siteConfig.phoneDisplay}`}
+            onClick={() => {
+              try {
+                reportCallClick({ sourceComponent: 'SITE_HEADER_MOBILE_CALL' });
+              } catch {
+                /* never block tel: */
+              }
+            }}
+          >
+            <IconButton
+              aria-label={`Call ${siteConfig.phoneDisplay}`}
+              size="md"
+              borderRadius="full"
+              bg="accent.solid"
+              color="bg.canvas"
+              boxShadow="glowSoft"
+              minW="44px"
+              minH="44px"
+              _hover={{ boxShadow: 'glowMedium' }}
+            >
+              <FiPhone />
+            </IconButton>
+          </a>
           <IconButton
             aria-label="Open navigation menu"
             variant="ghost"
@@ -113,7 +166,7 @@ export function SiteHeader() {
           >
             <FiMenu />
           </IconButton>
-        </Box>
+        </HStack>
       </Flex>
 
       <Drawer.Root

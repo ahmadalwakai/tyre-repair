@@ -4,6 +4,7 @@ import { SiteHeader } from '@/components/layout/SiteHeader';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { FloatingActions } from '@/components/floating/FloatingActions';
 import { HeroSection } from '@/components/landing/HeroSection';
+import { MobileTrustStrip } from '@/components/mobile/MobileTrustStrip';
 import { EmergencyBanner } from '@/components/landing/EmergencyBanner';
 import { ServiceStatusBanner } from '@/components/landing/ServiceStatusBanner';
 import { ServicesSection } from '@/components/landing/ServicesSection';
@@ -15,6 +16,8 @@ import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
 import { FaqSection } from '@/components/landing/FaqSection';
 import { FinalCtaSection } from '@/components/landing/FinalCtaSection';
 import { InternalLinkGrid } from '@/components/seo/InternalLinkGrid';
+import { FaqJsonLd } from '@/components/seo/FaqJsonLd';
+import { HOME_FAQS } from '@/lib/landing/home-faqs';
 import { buildSeoMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = buildSeoMetadata({
@@ -55,6 +58,11 @@ const TOP_SERVICE_LINKS = [
     href: '/locations/edinburgh',
     description: 'Edinburgh and Lothians from Glasgow.',
   },
+  {
+    label: 'Buy tyres online',
+    href: '/tyres',
+    description: 'Browse stock by tyre size and brand.',
+  },
 ];
 
 export default function HomePage() {
@@ -63,6 +71,7 @@ export default function HomePage() {
       <SiteHeader />
       <Box as="main">
         <HeroSection />
+        <MobileTrustStrip />
         <ServiceStatusBanner />
         <EmergencyBanner />
         <ServicesSection />
@@ -86,6 +95,7 @@ export default function HomePage() {
       </Box>
       <SiteFooter />
       <FloatingActions />
+      <FaqJsonLd items={HOME_FAQS} pageId="home" />
     </>
   );
 }

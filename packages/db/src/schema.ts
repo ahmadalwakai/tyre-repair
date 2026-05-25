@@ -94,6 +94,8 @@ export const tyreProblemTypeEnum = pgEnum('tyre_problem_type', [
 
 export const quoteJobTypeEnum = pgEnum('quote_job_type', ['ASSESSMENT', 'REPLACEMENT']);
 
+export const fittingMethodEnum = pgEnum('fitting_method', ['GARAGE', 'HOME']);
+
 export const pricingOverrideTypeEnum = pgEnum('pricing_override_type', ['surge', 'discount']);
 
 export const pricingOverrideStatusEnum = pgEnum('pricing_override_status', [
@@ -102,7 +104,26 @@ export const pricingOverrideStatusEnum = pgEnum('pricing_override_status', [
   'expired',
 ]);
 
-export const adminRoleEnum = pgEnum('admin_role', ['owner', 'admin']);
+/**
+ * Admin Stability & Field Operations Pack — role-based permissions.
+ *
+ * Existing values 'owner' and 'admin' are preserved for backwards
+ * compatibility. New values widen the spectrum:
+ *   - dispatcher: day-to-day phone bookings, action queue, location
+ *     requests, notes, attachments. No pricing overrides, no cancellation.
+ *   - operator:   limited write — view bookings, create quick bookings,
+ *     notes, send location requests. No pricing/cancellation/refunds.
+ *   - viewer:     read-only dashboards, reports and bookings.
+ *
+ * Permission semantics live in `apps/web/src/lib/admin/permissions.ts`.
+ */
+export const adminRoleEnum = pgEnum('admin_role', [
+  'owner',
+  'admin',
+  'dispatcher',
+  'operator',
+  'viewer',
+]);
 
 export const visitorEventTypeEnum = pgEnum('visitor_event_type', [
   'page_view',
@@ -111,6 +132,20 @@ export const visitorEventTypeEnum = pgEnum('visitor_event_type', [
   'cart_updated',
   'checkout_started',
   'booking_completed',
+]);
+
+/**
+ * Admin Stability & Field Operations Pack — booking attachments.
+ * Operational proof photos uploaded by admins (damage, tyre size, locking
+ * nut, after-repair, receipt). Admin-only; never exposed to customers.
+ */
+export const bookingAttachmentTypeEnum = pgEnum('booking_attachment_type', [
+  'DAMAGE_PHOTO',
+  'TYRE_SIZE_PHOTO',
+  'LOCKING_NUT_PHOTO',
+  'AFTER_REPAIR_PHOTO',
+  'RECEIPT_PHOTO',
+  'OTHER',
 ]);
 
 /* -------------------------------------------------------------------------- */
@@ -346,6 +381,19 @@ export const bookings = pgTable(
     refundedAt: timestamp('refunded_at', { withTimezone: true }),
     /** Admin Efficiency Pack F9 — booking source tracking. */
     source: varchar('source', { length: 40 }),
+    /* ------------------------------------------------------------------ */
+    /* Tyre Shop Phase 1 — additive fields for scheduled tyre sales       */
+    /* (GARAGE / HOME fitting, slot, backorder, fitting/distance fees).   */
+    /* All nullable or default-safe; existing emergency bookings unaffected. */
+    /* ------------------------------------------------------------------ */
+    fittingMethod: fittingMethodEnum('fitting_method'),
+    quantity: integer('quantity').notNull().default(1),
+    scheduledAt: timestamp('scheduled_at', { withTimezone: true }),
+    slotLabel: varchar('slot_label', { length: 40 }),
+    isBackorder: boolean('is_backorder').notNull().default(false),
+    backorderEtaDays: integer('backorder_eta_days'),
+    fittingFeeGbp: numeric('fitting_fee_gbp', { precision: 10, scale: 2 }),
+    distanceFeeGbp: numeric('distance_fee_gbp', { precision: 10, scale: 2 }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -358,9 +406,25 @@ export const bookings = pgTable(
     index('bookings_emergency_detected_at_idx').on(t.emergencyDetectedAt),
     index('bookings_job_type_idx').on(t.jobType),
     index('bookings_tyre_problem_type_idx').on(t.tyreProblemType),
+    index('bookings_fitting_method_idx').on(t.fittingMethod),
+    index('bookings_scheduled_at_idx').on(t.scheduledAt),
+    index('bookings_is_backorder_idx').on(t.isBackorder),
     check(
       'bookings_tracking_id_format',
       sql`${t.trackingId} ~ '^TR-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$'`,
+    ),
+    check('bookings_quantity_positive', sql`${t.quantity} > 0`),
+    check(
+      'bookings_backorder_eta_non_negative',
+      sql`${t.backorderEtaDays} IS NULL OR ${t.backorderEtaDays} >= 0`,
+    ),
+    check(
+      'bookings_fitting_fee_non_negative',
+      sql`${t.fittingFeeGbp} IS NULL OR ${t.fittingFeeGbp} >= 0`,
+    ),
+    check(
+      'bookings_distance_fee_non_negative',
+      sql`${t.distanceFeeGbp} IS NULL OR ${t.distanceFeeGbp} >= 0`,
     ),
   ],
 );
@@ -385,6 +449,39 @@ export const bookingEvents = pgTable(
     index('booking_events_booking_id_idx').on(t.bookingId),
     index('booking_events_to_status_idx').on(t.toStatus),
     index('booking_events_created_at_idx').on(t.createdAt),
+  ],
+);
+
+/**
+ * Admin Stability & Field Operations Pack — booking_attachments.
+ * Operational proof photos uploaded by admins. Admin-only.
+ * `fileUrl` is the resolvable URL (CDN/public bucket); `fileKey` is the
+ * provider object key for deletion. Storage provider is read at runtime
+ * from env (see apps/web/src/lib/admin/storage-config.ts).
+ */
+export const bookingAttachments = pgTable(
+  'booking_attachments',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    bookingId: uuid('booking_id')
+      .notNull()
+      .references(() => bookings.id, { onDelete: 'cascade' }),
+    uploadedByAdminId: uuid('uploaded_by_admin_id').references(() => admins.id, {
+      onDelete: 'set null',
+    }),
+    type: bookingAttachmentTypeEnum('type').notNull().default('OTHER'),
+    fileUrl: text('file_url').notNull(),
+    fileKey: text('file_key'),
+    mimeType: varchar('mime_type', { length: 120 }).notNull(),
+    sizeBytes: integer('size_bytes').notNull().default(0),
+    caption: varchar('caption', { length: 280 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('booking_attachments_booking_id_idx').on(t.bookingId),
+    index('booking_attachments_type_idx').on(t.type),
+    index('booking_attachments_created_at_idx').on(t.createdAt),
+    check('booking_attachments_size_non_negative', sql`${t.sizeBytes} >= 0`),
   ],
 );
 
@@ -754,6 +851,13 @@ export const callClickEvents = pgTable(
     jobType: quoteJobTypeEnum('job_type'),
     locationSummary: varchar('location_summary', { length: 240 }),
     userAgent: text('user_agent'),
+    /** Approximate caller location derived from the network IP at the
+     * edge (Vercel headers). City-level only, used purely for operational
+     * context on the admin popup (UK ICO/GDPR: legitimate interest, no
+     * precise geolocation, no profile linkage). */
+    networkCountry: varchar('network_country', { length: 4 }),
+    networkRegion: varchar('network_region', { length: 80 }),
+    networkCity: varchar('network_city', { length: 120 }),
     /** Full URL the customer was on when they tapped the call button. */
     href: text('href'),
     /** document.referrer at click time, if present. */

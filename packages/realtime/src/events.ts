@@ -61,6 +61,14 @@ export interface BookingCreatedPayload {
   paymentMode?: 'FULL' | 'DEPOSIT';
   /** When the customer's quote was originally created (ISO). */
   quoteCreatedAt?: string | null;
+  /** Booking source ('tyre_shop' for public Buy Tyres orders). */
+  source?: string | null;
+  /** Buy Tyres scheduled-fitting metadata (only set when source === 'tyre_shop'). */
+  fittingMethod?: 'GARAGE' | 'HOME' | null;
+  quantity?: number | null;
+  scheduledAt?: string | null;
+  slotLabel?: string | null;
+  isBackorder?: boolean | null;
 }
 
 export interface BookingStatusUpdatedPayload {
@@ -189,6 +197,10 @@ export interface LeadCallClickedPayload {
     | 'NOT_SURE'
     | null;
   jobType?: 'ASSESSMENT' | 'REPLACEMENT' | null;
+  /** Approximate caller location derived from the network IP (city-level). */
+  networkCity?: string | null;
+  networkRegion?: string | null;
+  networkCountry?: string | null;
   createdAt: string;
 }
 

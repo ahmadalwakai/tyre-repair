@@ -3,6 +3,7 @@ import NextLink from 'next/link';
 import { siteConfig } from '@/lib/site-config';
 import type { LandingNavItem } from '@/types/landing';
 import { TrackedPhoneLink } from '@/components/tracking/TrackedPhoneLink';
+import { buildWhatsappHref } from '@/lib/contact/whatsapp-message';
 
 const NAV: readonly LandingNavItem[] = [
   { label: 'Services', href: '/services' },
@@ -10,6 +11,13 @@ const NAV: readonly LandingNavItem[] = [
   { label: 'Locations', href: '/locations' },
   { label: 'FAQ', href: '/faq' },
   { label: 'Get Quote', href: '/quote' },
+];
+
+const COMPANY_FOOTER: readonly LandingNavItem[] = [
+  { label: 'About us', href: '/about' },
+  { label: 'How it works', href: '/how-it-works' },
+  { label: 'Contact', href: '/contact' },
+  { label: 'FAQ', href: '/faq' },
 ];
 
 const SERVICES_FOOTER: readonly LandingNavItem[] = [
@@ -51,7 +59,7 @@ export function SiteFooter() {
       px={{ base: '4', md: '6' }}
     >
       <Container maxW="7xl">
-        <SimpleGrid columns={{ base: 1, md: 6 }} gap={{ base: '8', md: '10' }}>
+        <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 7 }} gap={{ base: '8', md: '10' }}>
           <Stack gap="3">
             <Text fontFamily="heading" color="accent.neon" fontSize="xl">
               {siteConfig.businessName}
@@ -73,7 +81,7 @@ export function SiteFooter() {
                 Phone: {siteConfig.phoneDisplay}
               </Text>
             </TrackedPhoneLink>
-            <a href={siteConfig.whatsappHref} target="_blank" rel="noopener noreferrer">
+            <a href={buildWhatsappHref()} target="_blank" rel="noopener noreferrer">
               <Text color="fg.muted" fontSize="sm" _hover={{ color: 'accent.neon' }}>
                 WhatsApp: {siteConfig.whatsappDisplay}
               </Text>
@@ -85,6 +93,19 @@ export function SiteFooter() {
               Site
             </Text>
             {NAV.map((item) => (
+              <NextLink key={item.href} href={item.href}>
+                <Text color="fg.muted" fontSize="sm" _hover={{ color: 'accent.neon' }}>
+                  {item.label}
+                </Text>
+              </NextLink>
+            ))}
+          </Stack>
+
+          <Stack gap="2">
+            <Text color="fg.default" fontWeight="700" fontSize="sm" textTransform="uppercase" letterSpacing="0.14em">
+              Company
+            </Text>
+            {COMPANY_FOOTER.map((item) => (
               <NextLink key={item.href} href={item.href}>
                 <Text color="fg.muted" fontSize="sm" _hover={{ color: 'accent.neon' }}>
                   {item.label}
