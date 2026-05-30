@@ -671,7 +671,7 @@ function ItemGrid({
                   ? 'In stock'
                   : t.stockStatus === 'LOW_STOCK'
                     ? `Only ${t.effectiveStock} left`
-                    : 'Backorder'}
+                    : 'Special order'}
               </Badge>
             </HStack>
             <GoldButton onClick={() => onPick(t)}>Choose this tyre</GoldButton>
@@ -695,6 +695,12 @@ function SelectedTyreSummary(props: {
   onAcceptsBackorderChange: (v: boolean) => void;
 }) {
   const isBackorder = props.tyre.effectiveStock < props.quantity;
+  // We only physically stock Budget all-season tyres. Any other tier/season
+  // is sourced on order, so customers should see a clear "special order" note
+  // rather than a generic "out of quantity" backorder message.
+  const isSpecialOrderType =
+    props.tyre.effectiveStock === 0 &&
+    !(props.tyre.tier === 'budget' && props.tyre.season === 'all_season');
   return (
     <Box borderWidth="1px" borderColor="border.gold" bg="bg.subtle" p="4" borderRadius="md">
       <Stack gap="3">
@@ -743,11 +749,14 @@ function SelectedTyreSummary(props: {
           >
             <Stack gap="2">
               <Text color="fg.default" fontWeight="bold">
-                Backorder — fitted within {props.backorderEtaWorkingDays} working days
+                {isSpecialOrderType
+                  ? `Special order — fitted within ${props.backorderEtaWorkingDays} working days`
+                  : `Backorder — fitted within ${props.backorderEtaWorkingDays} working days`}
               </Text>
               <Text color="fg.muted" fontSize="sm">
-                We don&apos;t hold this quantity in stock. Pay now and we&apos;ll source it for
-                fitting within {props.backorderEtaWorkingDays} working days.
+                {isSpecialOrderType
+                  ? `We only keep Budget all-season tyres in stock for same-day fitting. ${props.tyre.brand} ${props.tyre.model} (${tierLabel(props.tyre.tier)}${props.tyre.season ? ` • ${props.tyre.season.replace('_', ' ')}` : ''}) is sourced on order — pay now and we'll fit it within ${props.backorderEtaWorkingDays} working days.`
+                  : `We don't hold this quantity in stock. Pay now and we'll source it for fitting within ${props.backorderEtaWorkingDays} working days.`}
               </Text>
               <HStack>
                 <input
@@ -763,7 +772,7 @@ function SelectedTyreSummary(props: {
                   color="fg.muted"
                   fontSize="sm"
                 >
-                  I accept the {props.backorderEtaWorkingDays} working day backorder.
+                  I accept the {props.backorderEtaWorkingDays} working day {isSpecialOrderType ? 'special order' : 'backorder'}.
                 </chakra.label>
               </HStack>
             </Stack>

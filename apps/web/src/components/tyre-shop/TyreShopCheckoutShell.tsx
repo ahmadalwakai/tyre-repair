@@ -102,8 +102,8 @@ function TyreShopPaymentForm({
           ) : null}
           <Button
             type="submit"
-            bg="brand.gold"
-            color="black"
+            bg="accent.solid"
+            color="white"
             fontFamily="heading"
             disabled={status === 'processing' || !stripe || !elements}
             loading={status === 'processing'}

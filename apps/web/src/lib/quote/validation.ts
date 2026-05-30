@@ -56,6 +56,8 @@ export const manualAddressSchema = z.object({
   city: z.string().min(2).max(120),
   postcode: z.string().min(3).max(20),
   country: z.string().max(80).optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
 });
 
 export const tyreProblemTypeSchema = z.enum([

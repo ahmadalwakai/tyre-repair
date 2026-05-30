@@ -566,6 +566,44 @@ export const pricingOverrides = pgTable(
   ],
 );
 
+/* -------------------------------------------------------------------------- */
+/* admin_price_overrides                                                      */
+/*                                                                            */
+/* Records every time the admin manually edits the engine-suggested price in  */
+/* Quick Booking. The pricing engine reads recent rows for the same           */
+/* (jobType, problemType, distance bucket) to suggest a learned adjustment    */
+/* multiplier on future quotes. Distance bucket is:                           */
+/*   0 = < 5 mi, 1 = 5–10, 2 = 10–20, 3 = 20–40, 4 = 40+ (or null)            */
+/* -------------------------------------------------------------------------- */
+export const adminPriceOverrides = pgTable(
+  'admin_price_overrides',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    bookingId: uuid('booking_id').references(() => bookings.id, { onDelete: 'set null' }),
+    createdByAdminId: uuid('created_by_admin_id').references(() => admins.id, {
+      onDelete: 'set null',
+    }),
+    jobType: varchar('job_type', { length: 32 }).notNull(),
+    tyreProblemType: varchar('tyre_problem_type', { length: 32 }),
+    tyreId: uuid('tyre_id').references(() => tyreCatalog.id, { onDelete: 'set null' }),
+    distanceBucket: integer('distance_bucket'),
+    engineTotalGbp: numeric('engine_total_gbp', { precision: 10, scale: 2 }).notNull(),
+    adminTotalGbp: numeric('admin_total_gbp', { precision: 10, scale: 2 }).notNull(),
+    adjustmentMultiplier: numeric('adjustment_multiplier', { precision: 10, scale: 4 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('admin_price_overrides_lookup_idx').on(
+      t.jobType,
+      t.tyreProblemType,
+      t.distanceBucket,
+      t.createdAt,
+    ),
+    index('admin_price_overrides_created_at_idx').on(t.createdAt),
+    check('admin_price_overrides_multiplier_positive', sql`${t.adjustmentMultiplier} > 0`),
+  ],
+);
+
 export const liveVisitors = pgTable(
   'live_visitors',
   {
@@ -946,6 +984,84 @@ export const appSettings = pgTable(
 );
 
 /* -------------------------------------------------------------------------- */
+/* Coverage zones (Scotland service-area)                                     */
+/* -------------------------------------------------------------------------- */
+
+export const coverageZoneStatusEnum = pgEnum('coverage_zone_status', [
+  'active',
+  'paused',
+  'unavailable',
+]);
+
+export const coverageZones = pgTable(
+  'coverage_zones',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    slug: varchar('slug', { length: 80 }).notNull().unique(),
+    name: varchar('name', { length: 160 }).notNull(),
+    status: coverageZoneStatusEnum('status').notNull().default('active'),
+    cityOrRegion: varchar('city_or_region', { length: 160 }).notNull(),
+    /** Always upper-case outward codes or area letters (e.g. ["G","PA","ML"]). */
+    postcodePrefixes: jsonb('postcode_prefixes').notNull().default(sql`'[]'::jsonb`),
+    basePostcode: varchar('base_postcode', { length: 16 }).notNull(),
+    radiusMiles: integer('radius_miles').notNull().default(0),
+    estimatedResponseMinutesMin: integer('estimated_response_minutes_min').notNull().default(0),
+    estimatedResponseMinutesMax: integer('estimated_response_minutes_max').notNull().default(0),
+    callOutFeePence: integer('call_out_fee_pence').notNull().default(0),
+    availableNow: boolean('available_now').notNull().default(false),
+    availableToday: boolean('available_today').notNull().default(false),
+    availableTomorrow: boolean('available_tomorrow').notNull().default(false),
+    dailyCapacity: integer('daily_capacity').notNull().default(0),
+    /** Lower = higher priority when multiple zones match a postcode. */
+    priority: integer('priority').notNull().default(50),
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex('coverage_zones_slug_unique_idx').on(t.slug),
+    index('coverage_zones_status_idx').on(t.status),
+    index('coverage_zones_priority_idx').on(t.priority),
+  ],
+);
+
+export type CoverageZoneRow = InferSelectModel<typeof coverageZones>;
+export type NewCoverageZoneRow = InferInsertModel<typeof coverageZones>;
+
+/* -------------------------------------------------------------------------- */
+/* SEO page overrides (admin-editable per-path SEO settings + recommendations)*/
+/* -------------------------------------------------------------------------- */
+
+export const seoPageSettings = pgTable(
+  'seo_page_settings',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Public URL pathname, always starts with "/" (e.g. "/lp/puncture-repair"). */
+    path: varchar('path', { length: 240 }).notNull().unique(),
+    /** Short label shown in admin UI (does not affect public HTML). */
+    label: varchar('label', { length: 160 }).notNull(),
+    title: varchar('title', { length: 200 }),
+    description: varchar('description', { length: 320 }),
+    /** Primary on-page H1; falls back to title when null. */
+    h1: varchar('h1', { length: 200 }),
+    /** Short intro paragraph for hero/subheadline; max ~600 chars. */
+    intro: text('intro'),
+    /** Editable keyword list (Array<string>). */
+    keywords: jsonb('keywords').notNull().default(sql`'[]'::jsonb`),
+    /** When true, page is rendered with noindex/nofollow. */
+    noindex: boolean('noindex').notNull().default(false),
+    /** Free-form admin note (e.g. "rewrite for spring campaign"). */
+    notes: text('notes'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('seo_page_settings_path_unique_idx').on(t.path)],
+);
+
+export type SeoPageSettingsRow = InferSelectModel<typeof seoPageSettings>;
+export type NewSeoPageSettingsRow = InferInsertModel<typeof seoPageSettings>;
+
+/* -------------------------------------------------------------------------- */
 /* Audit logs (Final Safety Pack — Bundle A)                                  */
 /* -------------------------------------------------------------------------- */
 
@@ -1208,3 +1324,6 @@ export type NewCustomerRiskNote = InferInsertModel<typeof customerRiskNotes>;
 
 export type EmergencyAssistEvent = InferSelectModel<typeof emergencyAssistEvents>;
 export type NewEmergencyAssistEvent = InferInsertModel<typeof emergencyAssistEvents>;
+
+export type AdminPriceOverride = InferSelectModel<typeof adminPriceOverrides>;
+export type NewAdminPriceOverride = InferInsertModel<typeof adminPriceOverrides>;

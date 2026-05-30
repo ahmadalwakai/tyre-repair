@@ -14,9 +14,9 @@ module.exports = {
         surfaceMuted: '#1F1F26',
         border: '#2A2A33',
         gold: {
-          DEFAULT: '#D4AF37',
-          soft: '#E8C766',
-          deep: '#A8851D',
+          DEFAULT: '#E30613',
+          soft: '#FF6B7A',
+          deep: '#8F0010',
         },
         text: {
           DEFAULT: '#F5F5F7',

@@ -53,13 +53,13 @@ export async function sendPaymentLinkEmail(
     .join('\n');
 
   const html = `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#0A0A0A;color:#FFFFFF;padding:24px">
-    <h2 style="color:#FFD700;margin:0 0 12px">Payment link from TyreRepair UK</h2>
+    <h2 style="color:#E30613;margin:0 0 12px">Payment link from TyreRepair UK</h2>
     <p>${greeting.replace(/</g, '&lt;')}</p>
     <p>Here is your secure payment link for your ${purposeText}.</p>
     ${input.amountGbp ? `<p style="font-size:18px"><strong>Amount: £${input.amountGbp}</strong></p>` : ''}
-    <p><a href="${input.link}" style="background:#D4AF37;color:#0A0A0A;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:600">Complete payment</a></p>
+    <p><a href="${input.link}" style="background:#E30613;color:#0A0A0A;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:600">Complete payment</a></p>
     ${input.businessPhone ? `<p style="color:#B8B8B8;font-size:13px">Need help? Call ${input.businessPhone}.</p>` : ''}
-    ${input.whatsappLink ? `<p style="color:#B8B8B8;font-size:13px"><a style="color:#D4AF37" href="${input.whatsappLink}">WhatsApp us</a></p>` : ''}
+    ${input.whatsappLink ? `<p style="color:#B8B8B8;font-size:13px"><a style="color:#E30613" href="${input.whatsappLink}">WhatsApp us</a></p>` : ''}
   </body></html>`;
 
   try {

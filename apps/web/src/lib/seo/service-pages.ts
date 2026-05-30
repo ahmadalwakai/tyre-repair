@@ -9,7 +9,7 @@ export const servicePages: readonly ServicePage[] = [
     title: 'Mobile tyre fitting',
     metaTitle: 'Mobile Tyre Fitting Near You | TyreRepair UK',
     metaDescription:
-      'Mobile tyre fitting at home, work or roadside. A Glasgow-based mobile tyre fitter covering Scotland with new tyres fitted on your driveway, day or night.',
+      'Mobile tyre fitting at home, work or roadside. A Scotland-wide mobile tyre fleet with new tyres fitted on your driveway, day or night, anywhere in Scotland.',
     heroTitle: 'Mobile tyre fitting that comes to you',
     heroIntro:
       'A mobile tyre fitter saves you towing the car to a garage. We come to your home, your workplace or the roadside with the right tyre and the equipment to fit and balance it on the vehicle.',
@@ -80,7 +80,7 @@ export const servicePages: readonly ServicePage[] = [
     title: 'Emergency tyre repair',
     metaTitle: 'Emergency Tyre Repair Near You | TyreRepair UK',
     metaDescription:
-      'Emergency mobile tyre repair for flat tyres, blowouts and damaged tyres at your location. Glasgow base, Scotland-wide cover, no date or time picker.',
+      'Emergency mobile tyre repair for flat tyres, blowouts and damaged tyres at your location. Scotland-wide mobile fleet — vans dispatched 24/7, no date or time picker.',
     heroTitle: 'Emergency tyre repair when you cannot drive on it',
     heroIntro:
       'A flat tyre, sudden blowout or badly damaged tyre is not something to drive on. We dispatch a mobile fitter to your location with replacement options so the car can be back on the road safely.',
@@ -143,7 +143,7 @@ export const servicePages: readonly ServicePage[] = [
     title: '24 hour mobile tyre fitting',
     metaTitle: '24 Hour Mobile Tyre Fitting | Open Now Tyre Help',
     metaDescription:
-      '24 hour mobile tyre fitting for late-night, weekend and out-of-hours tyre help. A Glasgow base covering Scotland for night-time and Sunday tyre call outs.',
+      '24 hour mobile tyre fitting for late-night, weekend and out-of-hours tyre help. Scotland-wide mobile fleet covering night-time and Sunday tyre call outs.',
     heroTitle: '24 hour mobile tyre fitting — out-of-hours tyre help',
     heroIntro:
       'Tyres rarely fail at convenient times. The service is built for late evenings, nights, Sundays and bank holidays — when most local garages are shut and you still need to be moving in the morning.',
@@ -165,7 +165,7 @@ export const servicePages: readonly ServicePage[] = [
         heading: 'How an out-of-hours call out works',
         body: [
           'Demand is uneven outside garage hours, so we never ask you to pick a slot. You request the call out, the system prices it for the conditions at that moment, and we confirm timing on the phone.',
-          'Pricing reflects time of day, weather, weekend or bank holiday surcharges, distance from Glasgow HQ, and current demand. The quote is shown clearly before you pay.',
+          'Pricing reflects time of day, weather, weekend or bank holiday surcharges, travel distance to your location, and current demand. The quote is shown clearly before you pay.',
         ],
       },
       {
@@ -271,7 +271,7 @@ export const servicePages: readonly ServicePage[] = [
     title: 'Roadside tyre fitting',
     metaTitle: 'Roadside Tyre Fitting for Flat Tyres and Blowouts',
     metaDescription:
-      'Roadside mobile tyre fitting for flat tyres, blowouts and damaged tyres on Scottish motorways and main roads, dispatched from a Glasgow base.',
+      'Roadside mobile tyre fitting for flat tyres, blowouts and damaged tyres on Scottish motorways and main roads. Scotland-wide mobile fleet — vans dispatched to your location.',
     heroTitle: 'Roadside tyre fitting on Scottish roads',
     heroIntro:
       'A flat tyre on a motorway, dual carriageway or rural road needs a careful, safety-first response. We come out with replacement tyres so the vehicle can complete the journey safely.',
@@ -320,7 +320,7 @@ export const servicePages: readonly ServicePage[] = [
       {
         question: 'Do you cover Scotland-wide motorway routes?',
         answer:
-          'Yes. The Glasgow base allows fast cover of the central belt, with extended cover up the A9 corridor and across Lanarkshire, the Lothians, Fife and beyond.',
+          'Yes. Our Scotland-wide mobile fleet gives fast cover of the central belt, with extended cover up the A9 corridor and across Lanarkshire, the Lothians, Fife and beyond.',
       },
     ],
     relatedServices: ['emergency-tyre-repair', '24-hour-mobile-tyre-fitting', 'mobile-tyre-fitting'],
@@ -382,7 +382,7 @@ export const servicePages: readonly ServicePage[] = [
     title: 'Van tyres',
     metaTitle: 'Mobile Van Tyre Fitting | Transit, Taxi and Fleet Tyres',
     metaDescription:
-      'Mobile van tyre fitting for Transit, Sprinter, taxis and small fleets across Scotland. Glasgow base for fast central-belt cover.',
+      'Mobile van tyre fitting for Transit, Sprinter, taxis and small fleets across Scotland. Scotland-wide mobile fleet for fast central-belt cover.',
     heroTitle: 'Mobile van tyre fitting and fleet support',
     heroIntro:
       'Vans, taxis and work vehicles cannot afford to sit at a depot. We carry common van and light commercial sizes and can fit at depot, driveway, customer site or roadside.',
@@ -438,7 +438,7 @@ export const servicePages: readonly ServicePage[] = [
     title: '4x4 and SUV tyres',
     metaTitle: '4x4 and SUV Mobile Tyre Fitting | TyreRepair UK',
     metaDescription:
-      'Mobile tyre fitting for 4x4, SUV and motorhome vehicles across Scotland, where serviceable. Glasgow base, central belt fast cover.',
+      'Mobile tyre fitting for 4x4, SUV and motorhome vehicles across Scotland, where serviceable. Scotland-wide mobile fleet, central belt fast cover.',
     heroTitle: 'Mobile tyre fitting for 4x4, SUV and larger vehicles',
     heroIntro:
       'Larger vehicles take heavier wheels and load-rated tyres. We can handle most common 4x4 and SUV sizes at the customer location.',
@@ -551,7 +551,7 @@ export const servicePages: readonly ServicePage[] = [
       {
         question: 'Are you the cheapest mobile tyre fitter?',
         answer:
-          'We do not make cheapest claims. We aim to be transparent — the quote shows the price for the actual job, including time of day, weather and distance from the Glasgow base.',
+          'We do not make cheapest claims. We aim to be transparent — the quote shows the price for the actual job, including time of day, weather and travel distance to your location.',
       },
       {
         question: 'Is mobile tyre fitting cheaper than a garage?',
@@ -562,6 +562,375 @@ export const servicePages: readonly ServicePage[] = [
     relatedServices: ['mobile-tyre-fitting', 'puncture-repair', 'winter-tyres'],
     relatedLocations: ['glasgow', 'edinburgh', 'paisley', 'falkirk'],
     ctaLabel: 'Get a budget tyre quote',
+    ctaHref: '/quote',
+  },
+  {
+    slug: 'new-tyres-fitted-at-home',
+    title: 'New tyres fitted at home',
+    metaTitle: 'New Tyres Fitted at Home | Mobile Tyre Fitting',
+    metaDescription:
+      'Buy new tyres online and have them fitted on your driveway across Scotland. Premium, mid-range and budget options, fitted and balanced on the vehicle.',
+    heroTitle: 'New tyres fitted on your driveway',
+    heroIntro:
+      'Order new tyres for your car or van and have them fitted at home. We bring the tyre, the equipment and the balancer to your driveway — no trip to the garage and no waiting around.',
+    primaryKeywords: [
+      'new tyres fitted at home',
+      'buy tyres fitted at home Glasgow',
+      'order tyres online fitted Scotland',
+      'mobile tyre fitter come to home',
+      'tyre fitter that comes to you',
+    ],
+    secondaryKeywords: [
+      'mobile tyre fitting Scotland',
+      'mobile tyre fitter Glasgow',
+      'mobile tyre fitting Edinburgh',
+    ],
+    sections: [
+      {
+        heading: 'Order and have your tyres fitted at home',
+        body: [
+          'Start a quote with the vehicle and the tyre size. The price shown includes the tyre, the fitting, valve and balance, and travel to your address. No surprise extras after the fitter arrives.',
+        ],
+      },
+      {
+        heading: 'Premium, mid-range and budget tyre choices',
+        body: [
+          'We will help you pick a tyre that matches the vehicle and the way you drive — not just whatever happens to be cheapest. For high-mileage drivers, run-flats and performance vehicles, a premium tyre often costs less per mile than a budget set.',
+        ],
+        bullets: [
+          'Premium tyre brands for performance and high-mileage',
+          'Mid-range options that hit the sweet spot on value',
+          'Budget tyres in the correct spec when price is the priority',
+        ],
+      },
+      {
+        heading: 'What happens on the day',
+        body: [
+          'The fitter arrives at the quoted time, removes the wheel, fits and balances the new tyre on a mobile balancer, and torques it back on the vehicle. A typical car visit is well under an hour once on site.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'How do I know which tyre size to buy?',
+        answer:
+          'Use your registration in the quote tool and we will confirm the OE size for the vehicle. If you have a non-standard size fitted (e.g. a winter spec) tell us and we will match.',
+      },
+      {
+        question: 'Can you fit just one tyre on the driveway?',
+        answer:
+          'Yes — single tyre replacement is a regular call out. For best handling we usually recommend axle-pair replacement, but it is your call.',
+      },
+      {
+        question: 'Do I have to be there when you fit the tyres?',
+        answer:
+          'You need to be reachable on the phone. Physical attendance is helpful for wheel access and locking wheel nut location but not always required.',
+      },
+    ],
+    relatedServices: ['mobile-tyre-fitting', 'budget-tyres', 'run-flat-tyres'],
+    relatedLocations: ['glasgow', 'edinburgh', 'paisley', 'hamilton'],
+    ctaLabel: 'Quote new tyres fitted',
+    ctaHref: '/quote',
+  },
+  {
+    slug: 'same-day-tyre-fitting',
+    title: 'Same-day tyre fitting',
+    metaTitle: 'Same-Day Mobile Tyre Fitting | TyreRepair UK',
+    metaDescription:
+      'Same-day mobile tyre fitting where stock and routing permit. Honest dispatch timing, no fake promises — we tell you on the call when we can realistically be there.',
+    heroTitle: 'Same-day mobile tyre fitting',
+    heroIntro:
+      'When you need to be back on the road today, same-day mobile fitting is the right call. We are honest about what is realistic given current jobs, traffic and stock — and we tell you on the call.',
+    primaryKeywords: [
+      'same day tyre fitting near me',
+      'same day mobile tyre fitting Scotland',
+      'tyre fitter today Glasgow',
+      'urgent tyre fitting',
+    ],
+    secondaryKeywords: [
+      'emergency tyre fitter',
+      'mobile tyre fitter Glasgow',
+      'mobile tyre fitting Edinburgh',
+    ],
+    sections: [
+      {
+        heading: 'When same-day works',
+        body: [
+          'For common car and light van sizes already on the van, same-day fitting is usually achievable across the central belt. For unusual sizes or remote locations we will be honest about timing before you pay.',
+        ],
+      },
+      {
+        heading: 'How we keep same-day honest',
+        body: [
+          'We do not promise arrival windows we cannot hit. The quote shows pricing for the conditions at the moment of booking — time of day, weather, travel distance — and dispatch is confirmed on the call.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Can you really come the same day?',
+        answer:
+          'For common sizes in the central belt, usually yes. For remote locations or unusual sizes we will say if same-day is realistic rather than promise and miss.',
+      },
+      {
+        question: 'Is same-day more expensive?',
+        answer:
+          'It is priced the same as any other call out for that time of day. Out-of-hours and weekend pricing applies separately and is shown in the quote.',
+      },
+    ],
+    relatedServices: ['emergency-tyre-repair', '24-hour-mobile-tyre-fitting', 'mobile-tyre-fitting'],
+    relatedLocations: ['glasgow', 'edinburgh', 'paisley', 'hamilton'],
+    ctaLabel: 'Quote same-day fitting',
+    ctaHref: '/quote',
+  },
+  {
+    slug: 'wheel-balancing',
+    title: 'Mobile wheel balancing',
+    metaTitle: 'Mobile Wheel Balancing | Vibration & Steering Wobble',
+    metaDescription:
+      'Mobile wheel balancing for vibration, steering wobble and after pothole strikes. Done on the vehicle, no trip to the garage.',
+    heroTitle: 'Mobile wheel balancing on your driveway',
+    heroIntro:
+      'A vibration through the steering wheel at 50–70 mph is almost always a wheel balance issue. We balance wheels on a mobile balancer at your location — no garage visit, no waiting room.',
+    primaryKeywords: [
+      'mobile wheel balancing near me',
+      'wheel balancing at home Glasgow',
+      'mobile tyre balancing Scotland',
+      'steering wobble fix',
+    ],
+    secondaryKeywords: [
+      'tyre vibration repair',
+      'mobile tyre fitter Glasgow',
+    ],
+    sections: [
+      {
+        heading: 'Symptoms of an unbalanced wheel',
+        body: [
+          'Vibration that rises with speed and peaks around 50–70 mph is the classic symptom. It can also show up as a wobble in the steering wheel or seat. A balance check is a quick first step before chasing more expensive causes.',
+        ],
+      },
+      {
+        heading: 'How we balance on site',
+        body: [
+          'Each wheel comes off in turn, goes onto the mobile balancer, and is set with the correct weights. We refit, torque to spec, and re-check the road feel before we leave.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'How often should wheels be balanced?',
+        answer:
+          'Every time a tyre is changed, after a pothole strike or kerb damage, or whenever you notice vibration that was not there before.',
+      },
+      {
+        question: 'Can you balance the spare too?',
+        answer:
+          'Yes — if it is going to live on the car for any meaningful distance, balancing it is sensible.',
+      },
+    ],
+    relatedServices: ['mobile-tyre-fitting', 'new-tyres-fitted-at-home', 'puncture-repair'],
+    relatedLocations: ['glasgow', 'edinburgh', 'paisley', 'east-kilbride'],
+    ctaLabel: 'Book wheel balancing',
+    ctaHref: '/quote',
+  },
+  {
+    slug: 'tpms-sensor-replacement',
+    title: 'TPMS sensor replacement',
+    metaTitle: 'Mobile TPMS Sensor Replacement | Tyre Pressure Warning',
+    metaDescription:
+      'Mobile TPMS sensor replacement for tyre pressure warning lights on car and light van. Diagnostic, replace and re-learn at your location.',
+    heroTitle: 'TPMS sensor replacement at your location',
+    heroIntro:
+      'A persistent tyre pressure warning light usually means a dead TPMS sensor. We diagnose, replace and re-learn at your location — no garage visit needed.',
+    primaryKeywords: [
+      'TPMS sensor replacement near me',
+      'tyre pressure warning light reset',
+      'mobile TPMS service Glasgow',
+      'TPMS sensor Scotland',
+    ],
+    secondaryKeywords: [
+      'mobile tyre fitter Glasgow',
+      'tyre pressure sensor cost',
+    ],
+    sections: [
+      {
+        heading: 'When the TPMS light comes on',
+        body: [
+          'A TPMS light can mean low pressure, a failing sensor, or a programming issue after a tyre change. We test the sensors, identify the failing one, and replace with a quality OE-compatible unit.',
+        ],
+      },
+      {
+        heading: 'OE vs aftermarket sensors',
+        body: [
+          'Many cars take aftermarket programmable sensors that match OE function for less money. For some marques the OE sensor is the cleaner choice and we will say so.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'How long does a TPMS sensor last?',
+        answer:
+          'Typically 5–10 years depending on use. The battery is integral, so when it dies the whole sensor is replaced.',
+      },
+      {
+        question: 'Do you reset the TPMS warning after the fix?',
+        answer:
+          'Yes — re-learn is part of the service. For some vehicles a short drive cycle is needed to complete the re-learn.',
+      },
+    ],
+    relatedServices: ['mobile-tyre-fitting', 'wheel-balancing', 'puncture-repair'],
+    relatedLocations: ['glasgow', 'edinburgh', 'paisley', 'hamilton'],
+    ctaLabel: 'Quote TPMS replacement',
+    ctaHref: '/quote',
+  },
+  {
+    slug: 'locking-wheel-nut-removal',
+    title: 'Locking wheel nut removal',
+    metaTitle: 'Mobile Locking Wheel Nut Removal | Lost Key Help',
+    metaDescription:
+      'Mobile locking wheel nut removal when the key is lost, broken or rounded. Safe extraction at your location, replacement nuts supplied.',
+    heroTitle: 'Locking wheel nut removal at your location',
+    heroIntro:
+      'Lost the locking wheel nut key, or stripped the splines? We can remove damaged or keyless locking wheel nuts safely on the driveway, refit a standard or replacement locking set, and document the work.',
+    primaryKeywords: [
+      'locking wheel nut removal mobile',
+      'lost locking wheel nut key help',
+      'mobile locking wheel nut Glasgow',
+      'remove rounded wheel lock',
+    ],
+    secondaryKeywords: [
+      'mobile tyre fitter Glasgow',
+      'wheel nut replacement Scotland',
+    ],
+    sections: [
+      {
+        heading: 'When you need a locking wheel nut removed',
+        body: [
+          'Most call outs are after a key has been lost in a clear-out, or where the previous fitter has over-tightened and rounded the splines. In both cases the nut needs to come off without damaging the alloy.',
+        ],
+      },
+      {
+        heading: 'How we remove safely',
+        body: [
+          'We use the appropriate extraction tool for the nut type and the wheel finish, working slowly to avoid alloy damage. Replacement standard or new locking nuts are supplied as part of the service.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Will you damage the alloy?',
+        answer:
+          'We work to avoid alloy damage but cannot always guarantee zero contact on heavily seized nuts. We will be honest about risk before we start.',
+      },
+      {
+        question: 'Do you supply replacement locking nuts?',
+        answer:
+          'Yes — replacement nuts are part of the call out, in OE pattern or aftermarket as appropriate.',
+      },
+    ],
+    relatedServices: ['mobile-tyre-fitting', 'new-tyres-fitted-at-home', 'emergency-tyre-repair'],
+    relatedLocations: ['glasgow', 'edinburgh', 'paisley', 'hamilton'],
+    ctaLabel: 'Quote wheel nut removal',
+    ctaHref: '/quote',
+  },
+  {
+    slug: 'caravan-and-trailer-tyres',
+    title: 'Caravan and trailer tyres',
+    metaTitle: 'Mobile Caravan & Trailer Tyre Fitting | Scotland',
+    metaDescription:
+      'Mobile caravan, trailer and motorhome tyre fitting at home, depot or storage compound. Correct load-rated tyres, fitted on site.',
+    heroTitle: 'Caravan and trailer tyres fitted on site',
+    heroIntro:
+      'Caravan, trailer and small motorhome tyres need correct load and speed ratings. We fit on the driveway, at storage compounds or before a trip — so the unit is ready to tow.',
+    primaryKeywords: [
+      'caravan tyre fitter mobile Scotland',
+      'trailer tyre replacement mobile',
+      'motorhome tyre fitting Scotland',
+      'mobile tyre fitter for caravan',
+    ],
+    secondaryKeywords: [
+      'mobile tyre fitter Glasgow',
+      'mobile tyre fitting Scotland',
+    ],
+    sections: [
+      {
+        heading: 'Why caravan and trailer tyres need care',
+        body: [
+          'Caravans and trailers spend long periods static and loaded. The tyre may have plenty of tread but be aged, cracked or out of date — all of which fail under towing load. Date code and condition matter as much as tread depth.',
+        ],
+      },
+      {
+        heading: 'What we fit',
+        body: [
+          'Correct load-rated tyres for the unit and the typical loaded weight. We will be honest if a wheel size or access situation is outside the safe scope of mobile work.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'How old can a caravan tyre be?',
+        answer:
+          'Most manufacturers recommend replacement at five to seven years regardless of tread. After ten years a caravan tyre should be considered unsafe.',
+      },
+      {
+        question: 'Do you fit at caravan storage compounds?',
+        answer:
+          'Yes — common across Scotland. We just need access and a contact on site.',
+      },
+    ],
+    relatedServices: ['mobile-tyre-fitting', '4x4-suv-tyres', 'van-tyres'],
+    relatedLocations: ['glasgow', 'perth', 'stirling', 'inverness'],
+    ctaLabel: 'Quote caravan/trailer tyres',
+    ctaHref: '/quote',
+  },
+  {
+    slug: 'all-season-tyres',
+    title: 'All-season tyres',
+    metaTitle: 'All-Season Tyres Fitted at Home | TyreRepair UK',
+    metaDescription:
+      'All-season tyres fitted at home across Scotland. One-tyre-all-year cover for drivers who do not want to swap winter and summer rubber.',
+    heroTitle: 'All-season tyres fitted on the driveway',
+    heroIntro:
+      'All-season tyres balance summer dry performance with winter grip. For central-belt drivers who do not see hard snow regularly, they often remove the need for a seasonal swap entirely.',
+    primaryKeywords: [
+      'all season tyres fitted at home',
+      'all weather tyres mobile fitting',
+      'all season tyres Glasgow',
+      'all season tyres Scotland',
+    ],
+    secondaryKeywords: [
+      'winter tyres fitted at home Scotland',
+      'mobile tyre fitter Glasgow',
+    ],
+    sections: [
+      {
+        heading: 'When all-season makes sense',
+        body: [
+          'For drivers who mostly do central-belt commuting and occasional rural routes, a quality all-season tyre handles Scottish weather without the seasonal change-over. For Highland and snow-belt drivers, dedicated winter tyres still win for the worst weeks.',
+        ],
+      },
+      {
+        heading: 'Mobile fitting on the driveway',
+        body: [
+          'We bring the tyres, the equipment and the balancer. The swap to all-season is the same straightforward job as any new tyre fitment.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        question: 'Are all-season tyres legal in winter?',
+        answer:
+          'Yes — Scotland does not require any specific seasonal tyre. All-season tyres marked with the 3-peak mountain snowflake are recognised winter-capable.',
+      },
+      {
+        question: 'Do all-season tyres wear faster?',
+        answer:
+          'Slightly. The trade-off is fewer change-overs and balanced performance year-round.',
+      },
+    ],
+    relatedServices: ['winter-tyres', 'mobile-tyre-fitting', 'new-tyres-fitted-at-home'],
+    relatedLocations: ['glasgow', 'edinburgh', 'perth', 'inverness'],
+    ctaLabel: 'Quote all-season tyres',
     ctaHref: '/quote',
   },
 ];

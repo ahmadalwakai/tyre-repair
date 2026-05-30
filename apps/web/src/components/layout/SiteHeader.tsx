@@ -63,7 +63,7 @@ export function SiteHeader() {
         <NextLink href="/" aria-label={`${siteConfig.businessName} home`}>
           <HStack gap="3" align="center">
             <Image
-              src="/images/brand/tyrerepair-emblem.png"
+              src="/images/brand/tyrerepair-emblem.svg"
               alt=""
               boxSize={{ base: scrolled ? '28px' : '36px', md: '44px' }}
               borderRadius="full"

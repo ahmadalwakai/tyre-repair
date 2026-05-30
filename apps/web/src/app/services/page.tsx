@@ -14,7 +14,7 @@ import { servicePages } from '@/lib/seo/service-pages';
 export const metadata: Metadata = buildSeoMetadata({
   title: 'Mobile Tyre Services Across Scotland | TyreRepair UK',
   description:
-    'Mobile tyre fitting, emergency tyre repair, puncture repair and 24/7 tyre help across Scotland from a Glasgow base. Browse all services.',
+    'Scotland-wide mobile tyre fitting, emergency tyre repair, puncture repair and 24/7 tyre help. Vans and drivers covering the whole of Scotland — we come to you.',
   path: '/services',
 });
 
@@ -38,7 +38,8 @@ export default function ServicesIndexPage() {
               </Heading>
               <Text color="fg.muted" fontSize={{ base: 'md', md: 'lg' }} maxW="3xl">
                 Mobile tyre fitting, emergency repair, puncture repair, run flats, van and 4x4 tyres,
-                winter tyres and budget options — all from a Glasgow base, dispatched to you.
+                winter tyres and budget options — Scotland-wide mobile cover, vans dispatched to your
+                location 24/7.
               </Text>
             </Stack>
           </Container>

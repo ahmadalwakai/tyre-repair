@@ -46,7 +46,7 @@ export function ExportCsvButton({
       size="sm"
       loading={busy}
       onPress={onPress}
-      iconLeft={<AdminIcon name="export" size={16} color="#D4AF37" />}
+      iconLeft={<AdminIcon name="export" size={16} color="#E30613" />}
     />
   );
 }

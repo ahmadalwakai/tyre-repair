@@ -34,12 +34,12 @@ async function ensureSound(): Promise<Audio.Sound | null> {
     // The actual asset must be bundled via expo-notifications plugin for the
     // system notification sound to work in killed/background state.
 
-    const asset = require('../../../assets/sounds/admin-alert.mp3');
+    const asset = require('../../../assets/sounds/admin_alert.mp3');
     const { sound } = await Audio.Sound.createAsync(asset, { shouldPlay: false });
     cachedSound = sound;
     return sound;
   } catch (e) {
-    console.warn('[admin-alert] failed to load admin-alert.mp3', e);
+    console.warn('[admin-alert] failed to load admin_alert.mp3', e);
     return null;
   }
 }

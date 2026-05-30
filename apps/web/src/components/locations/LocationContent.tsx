@@ -13,7 +13,7 @@ export function LocationContent({ page }: LocationContentProps) {
     <Container maxW="3xl" px={{ base: '4', md: '6' }} py={{ base: '8', md: '12' }}>
       <Stack gap={{ base: '8', md: '10' }}>
         <ContentCallout>
-          {`We are a Glasgow-based mobile tyre fitter operating from Unit 1, 10 Gateside Street, Glasgow G31 1PD. ${page.city} is part of our regular ${page.region} cover — we travel to you, we do not run a branch in ${page.city}.`}
+          {`Mobile tyre fitter covering ${page.city} and the wider ${page.region} area — we come to you at home, at work or roadside, day or night.`}
         </ContentCallout>
 
         <ContentSection

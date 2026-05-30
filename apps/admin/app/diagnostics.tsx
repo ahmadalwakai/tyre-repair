@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, Text, View, ActivityIndicator } from 'react-native';
+import { Pressable, ScrollView, Text, View, ActivityIndicator } from 'react-native';
+import { router } from 'expo-router';
 import { AppShell, ScreenHeader } from '@/components/layout/AppShell';
 import { OfflineBanner } from '@/components/system/OfflineBanner';
 import { AdminButton } from '@/components/ui/AdminButton';
+import { AdminIcon } from '@/components/ui/AdminIcon';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import { useToast } from '@/components/ui/Toast';
@@ -31,6 +33,29 @@ interface PingResult {
   durationMs: number;
   at: number;
   message?: string;
+}
+
+function BackButton(): React.JSX.Element {
+  const goBack = (): void => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)/today' as never);
+    }
+  };
+  return (
+    <Pressable
+      onPress={goBack}
+      accessibilityRole="button"
+      accessibilityLabel="Go back"
+      hitSlop={12}
+      android_ripple={{ color: 'rgba(212,175,55,0.15)', borderless: true }}
+      className="flex-row items-center px-3 py-2 mr-1 rounded-md"
+    >
+      <AdminIcon name="chevron-left" size={20} color="#E30613" />
+      <Text className="text-gold text-base ml-1">Back</Text>
+    </Pressable>
+  );
 }
 
 function StatusRow({ label, ok, hint }: { label: string; ok: boolean; hint?: string | undefined }): React.JSX.Element {
@@ -149,7 +174,12 @@ export default function DiagnosticsScreen(): React.JSX.Element {
   return (
     <AppShell>
       <OfflineBanner />
-      <ScreenHeader title="Admin diagnostics" subtitle="Connection, sound and environment checks" />
+      <View className="flex-row items-center pt-2">
+        <BackButton />
+        <View className="flex-1">
+          <ScreenHeader title="Admin diagnostics" subtitle="Connection, sound and environment checks" />
+        </View>
+      </View>
       <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 32 }}>
         {/* 1. API Connection */}
         <Card title="API connection">
@@ -224,6 +254,14 @@ export default function DiagnosticsScreen(): React.JSX.Element {
               loading={testingNotif}
               disabled={testingNotif || !online}
               onPress={sendTestNotif}
+            />
+          </View>
+          <View className="mt-2">
+            <AdminButton
+              label="Re-run permission setup"
+              variant="secondary"
+              size="sm"
+              onPress={() => router.push('/permissions-onboarding' as never)}
             />
           </View>
         </Card>
@@ -330,7 +368,7 @@ export default function DiagnosticsScreen(): React.JSX.Element {
 
         {loading && !data ? (
           <View className="items-center py-6">
-            <ActivityIndicator color="#D4AF37" />
+            <ActivityIndicator color="#E30613" />
           </View>
         ) : null}
       </ScrollView>

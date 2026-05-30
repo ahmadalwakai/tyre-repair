@@ -42,6 +42,8 @@ export function HowItWorksSection() {
       title="How emergency tyre help works"
       description="The quote flow is built for urgent tyre problems. Here is how it works."
       variant="elevated"
+      backgroundImage="/images/sections/howitworks-wheel.jpg"
+      backgroundAlt="Close-up of a car wheel ready for mobile tyre fitting"
     >
       <SimpleGrid columns={{ base: 1, md: 2, lg: 5 }} gap={{ base: '4', md: '5' }}>
         {STEPS.map((s, i) => (
@@ -52,8 +54,16 @@ export function HowItWorksSection() {
               p={{ base: '5', md: '6' }}
               borderRadius="lg"
               borderWidth="1px"
-              borderColor="border.subtle"
+              borderColor="accent.neon"
               bg="bg.canvas"
+              boxShadow="0 0 0 1px rgba(240,24,37,0.35), 0 0 18px rgba(240,24,37,0.25), inset 0 0 12px rgba(240,24,37,0.08)"
+              transition="box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease"
+              _hover={{
+                borderColor: 'accent.neon',
+                boxShadow:
+                  '0 0 0 1px rgba(240,24,37,0.6), 0 0 28px rgba(240,24,37,0.55), inset 0 0 14px rgba(240,24,37,0.12)',
+                transform: 'translateY(-2px)',
+              }}
             >
               <Flex
                 w="10"

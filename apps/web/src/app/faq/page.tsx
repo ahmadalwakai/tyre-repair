@@ -10,7 +10,9 @@ import { ServiceHero } from '@/components/services/ServiceHero';
 import { BreadcrumbJsonLd } from '@/components/seo/BreadcrumbJsonLd';
 import { FaqJsonLd } from '@/components/seo/FaqJsonLd';
 import { LocalBusinessJsonLd } from '@/components/seo/LocalBusinessJsonLd';
+import { InternalLinkGrid } from '@/components/seo/InternalLinkGrid';
 import { buildSeoMetadata } from '@/lib/seo/metadata';
+import { getTopServiceLinks, getTopLocationLinks } from '@/lib/seo/hub-links';
 
 export const metadata: Metadata = buildSeoMetadata({
   title: 'Mobile Tyre Fitting FAQ | TyreRepair UK',
@@ -33,7 +35,7 @@ const FAQ = [
   {
     question: 'How much does mobile tyre fitting cost?',
     answer:
-      'The quote shows the price clearly before you pay. Pricing reflects the tyre, time of day, weather, weekend or bank holiday surcharges, and distance from the Glasgow base. There is no separate callout fee added after arrival.',
+      'The quote shows the price clearly before you pay. Pricing reflects the tyre, time of day, weather, weekend or bank holiday surcharges, and travel distance to your location. There is no separate callout fee added after arrival.',
   },
   {
     question: 'Do mobile tyre fitters work on Sundays and bank holidays?',
@@ -81,9 +83,9 @@ const FAQ = [
       'Card payment is taken securely online when the quote is accepted. There is no extra payment expected on arrival.',
   },
   {
-    question: 'Do you really cover all of Scotland from Glasgow?',
+    question: 'Do you really cover all of Scotland?',
     answer:
-      'Yes — Glasgow is the dispatch base. Central belt, Lothians, Fife, Stirling, Lanarkshire and Renfrewshire are routine cover. Highland, Borders, and island work is honestly quoted with realistic travel times.',
+      'Yes — we run a mobile fleet of vans and drivers covering the whole of Scotland. Central belt, Lothians, Fife, Stirling, Lanarkshire, Renfrewshire and Ayrshire are routine same-day cover. Highland, Borders and island work is honestly quoted with realistic travel times before you commit.',
   },
   {
     question: 'What if I am stuck on the motorway with a flat tyre?',
@@ -137,6 +139,22 @@ export default function FaqPage() {
           ctaHref="/quote"
         />
         <ServiceFaq items={FAQ} />
+        <Box px={{ base: '4', md: '6' }} py={{ base: '8', md: '12' }} maxW="5xl" mx="auto">
+          <InternalLinkGrid
+            title="Jump to the service you need"
+            intro="Each service page has its own pricing, FAQ and what to expect on site."
+            links={getTopServiceLinks()}
+            columns={{ base: 1, md: 2 }}
+          />
+        </Box>
+        <Box px={{ base: '4', md: '6' }} pb={{ base: '8', md: '12' }} maxW="5xl" mx="auto">
+          <InternalLinkGrid
+            title="Where we cover"
+            intro="Top areas covered by our Scotland-wide mobile fleet."
+            links={getTopLocationLinks()}
+            columns={{ base: 1, md: 4 }}
+          />
+        </Box>
         <ServiceCta ctaLabel="Get Instant Emergency Quote" ctaHref="/quote" />
       </Box>
       <SiteFooter />

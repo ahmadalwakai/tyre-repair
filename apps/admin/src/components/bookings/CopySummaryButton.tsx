@@ -1,15 +1,14 @@
 import React from 'react';
-import { Share } from 'react-native';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { useToast } from '@/components/ui/Toast';
+import { copyToClipboard } from '@/lib/clipboard';
 import type { BookingDetailExtended } from '@/types/bookings';
 
 /**
  * Admin Efficiency Pack F4 — Copy booking summary.
  *
  * Generates a clean, plain-text summary of the booking for the admin to
- * paste into WhatsApp, an email, or a notes app. Uses the native share
- * sheet because expo-clipboard is not installed in this app.
+ * paste into WhatsApp, an email, or a notes app.
  */
 function buildSummary(detail: BookingDetailExtended): string {
   const b = detail.booking;
@@ -66,11 +65,9 @@ export function CopySummaryButton({
   const toast = useToast();
   const onPress = async (): Promise<void> => {
     const text = buildSummary(detail);
-    try {
-      await Share.share({ message: text });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not share');
-    }
+    const ok = await copyToClipboard(text);
+    if (ok) toast.success('Summary copied');
+    else toast.error('Copy failed');
   };
   return <GoldButton label="Copy summary" variant="secondary" onPress={() => void onPress()} />;
 }

@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Platform, View, Text } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FLOATING_TAB_BAR_HEIGHT } from '@/components/navigation/FloatingTabBar';
 
 export interface ScreenHeaderProps {
   title: string;
@@ -34,6 +35,21 @@ export function ScreenHeader({ title, subtitle, right }: ScreenHeaderProps): Rea
   );
 }
 
-export function AppShell({ children }: { children: React.ReactNode }): React.JSX.Element {
-  return <SafeAreaView className="flex-1 bg-canvas">{children}</SafeAreaView>;
+/**
+ * Height that screens should leave at the bottom so their content is not
+ * hidden by the floating tab dock. Includes the device safe area.
+ */
+export function useTabBarSpacer(): number {
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 12 : 8);
+  return FLOATING_TAB_BAR_HEIGHT + bottomInset + 12;
 }
+
+export function AppShell({ children }: { children: React.ReactNode }): React.JSX.Element {
+  return (
+    <SafeAreaView edges={['top', 'left', 'right']} className="flex-1 bg-canvas">
+      {children}
+    </SafeAreaView>
+  );
+}
+

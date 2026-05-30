@@ -66,7 +66,7 @@ export function CashReconciliationScreen(props: Props): React.JSX.Element {
     <ScrollView
       className="flex-1 bg-canvas"
       contentContainerStyle={{ padding: 16 }}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} tintColor="#D4AF37" />}
+      refreshControl={<RefreshControl refreshing={loading} onRefresh={() => void load()} tintColor="#E30613" />}
     >
       <View className="flex-row items-center justify-between mb-3">
         <Pressable

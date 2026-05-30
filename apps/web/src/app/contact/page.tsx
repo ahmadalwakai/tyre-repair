@@ -99,7 +99,7 @@ export default function ContactPage() {
         <Box as="section" bg="bg.canvas" py={{ base: '12', md: '16' }} px={{ base: '4', md: '6' }}>
           <Container maxW="5xl">
             <Stack gap="5" align="flex-start">
-              <GoldBadge icon={<FiPhone />}>24/7 emergency line · Glasgow base</GoldBadge>
+              <GoldBadge icon={<FiPhone />}>24/7 emergency line · Scotland-wide mobile cover</GoldBadge>
               <Heading as="h1" fontFamily="heading" fontSize={{ base: '3xl', md: '5xl' }} lineHeight="1.1" color="fg.default">
                 Need tyre help now?
               </Heading>
@@ -169,9 +169,10 @@ export default function ContactPage() {
                 Service area
               </Heading>
               <Text color="fg.muted" fontSize={{ base: 'md', md: 'lg' }} lineHeight="1.7">
-                Based in Glasgow and covering Scotland with mobile tyre repair, puncture help and
-                replacement tyres. Central belt and Lothians are routine cover. Highland, Borders
-                and island work is honestly quoted with realistic travel time.
+                Scotland-wide mobile tyre cover — we send a van and a fitter to you. Central belt,
+                Lothians, Fife, Stirling, Lanarkshire, Renfrewshire and Ayrshire are routine
+                same-day cover. Highland, Borders and island work is honestly quoted with realistic
+                travel times before you commit.
               </Text>
             </Stack>
           </Container>

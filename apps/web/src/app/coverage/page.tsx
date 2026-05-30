@@ -13,9 +13,9 @@ import { getLocationPagesByPriority } from '@/lib/seo/location-pages';
 import { siteConfig } from '@/lib/site-config';
 
 export const metadata: Metadata = buildSeoMetadata({
-  title: 'Coverage Across Scotland | Mobile Tyre Fitting',
+  title: 'Scotland-Wide Mobile Tyre Coverage | TyreRepair UK',
   description:
-    'A Glasgow base covering Scotland for mobile tyre fitting and emergency tyre repair. Honest travel-time quotes, no fake city branches.',
+    'Scotland-wide mobile tyre fitting and emergency tyre repair. Vans dispatched across the central belt, Lothians, Fife, Stirling, Lanarkshire, Ayrshire, Highlands and Borders.',
   path: '/coverage',
 });
 
@@ -44,17 +44,17 @@ export default function CoveragePage() {
                 lineHeight="1.25"
                 letterSpacing="0.01em"
               >
-                Coverage across Scotland from a Glasgow base
+                Scotland-wide mobile tyre coverage
               </Heading>
               <Text color="fg.muted" fontSize={{ base: 'md', md: 'lg' }} maxW="3xl" lineHeight="1.7">
-                {siteConfig.businessName} operates from {siteConfig.address}. Cover is mobile across
-                Scotland — we travel to the customer, we do not run regional branches. Travel time
-                from Glasgow is real and we are honest about it before you commit.
+                {siteConfig.businessName} runs a mobile fleet of vans and drivers covering the whole
+                of Scotland — we come to you. Central belt, Lothians, Fife, Stirling, Lanarkshire,
+                Renfrewshire and Ayrshire are routine same-day cover. Highland, Borders and island
+                jobs are quoted with honest travel times, never a guess.
               </Text>
               <Text color="fg.muted" fontSize="sm">
-                Central belt and Lothians are routine cover. Highland, Borders and island work is
-                quoted with realistic travel time and never with a promised arrival window we cannot
-                guarantee.
+                No fake city branches. Real vans, real drivers, dispatched to your location anywhere
+                in Scotland — 24 hours a day, 7 days a week.
               </Text>
             </Stack>
           </Container>

@@ -1,15 +1,14 @@
 /**
  * Slot generator for the Tyre Shop.
  *
- * Generates a deterministic 14-day grid of fitting slots starting from the
- * given anchor date. Closed on Sundays. Slots are 09:00, 11:00, 13:00, 15:00.
- * For backorder bookings the earliest available date is shifted by the
- * working-days ETA so the customer can never pick a slot before stock can
- * be sourced.
+ * Generates a deterministic booking grid from the given anchor date. Slot
+ * times, window length and Sunday-open flag come from admin-editable
+ * `tyre_shop.*` settings (see `lib/tyre-shop/settings.ts`) with safe
+ * fallbacks if no config is loaded.
  */
 
-const SLOT_TIMES: readonly string[] = ['09:00', '11:00', '13:00', '15:00'];
-const DAYS = 14;
+const DEFAULT_SLOT_TIMES: readonly string[] = ['09:00', '11:00', '13:00', '15:00'];
+const DEFAULT_DAYS = 14;
 
 export interface TyreShopSlot {
   date: string; // YYYY-MM-DD
@@ -25,13 +24,12 @@ function isoDate(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-function shiftWorkingDays(from: Date, workingDays: number): Date {
+function shiftWorkingDays(from: Date, workingDays: number, sundaysOpen: boolean): Date {
   const d = new Date(from);
   let added = 0;
   while (added < workingDays) {
     d.setDate(d.getDate() + 1);
-    const dow = d.getDay();
-    if (dow !== 0) added++; // count anything but Sunday as a working day
+    if (sundaysOpen || d.getDay() !== 0) added++;
   }
   return d;
 }
@@ -46,13 +44,27 @@ export interface GenerateSlotsInput {
   /** If true, push earliest available date by `backorderEtaWorkingDays`. */
   isBackorder?: boolean;
   backorderEtaWorkingDays?: number;
+  /** Override the default slot times (HH:MM). Falls back to defaults if empty. */
+  slotTimes?: readonly string[];
+  /** Override the default 14-day booking window. */
+  windowDays?: number;
+  /** When true, include Sundays in the booking grid. */
+  sundaysOpen?: boolean;
 }
 
 export function generateTyreShopSlots(input: GenerateSlotsInput = {}): TyreShopSlot[] {
   const now = input.from ?? new Date();
+  const slotTimes =
+    input.slotTimes && input.slotTimes.length > 0 ? input.slotTimes : DEFAULT_SLOT_TIMES;
+  const windowDays =
+    typeof input.windowDays === 'number' && input.windowDays > 0
+      ? Math.min(60, Math.floor(input.windowDays))
+      : DEFAULT_DAYS;
+  const sundaysOpen = input.sundaysOpen === true;
+
   const start =
     input.isBackorder && input.backorderEtaWorkingDays
-      ? shiftWorkingDays(now, input.backorderEtaWorkingDays)
+      ? shiftWorkingDays(now, input.backorderEtaWorkingDays, sundaysOpen)
       : new Date(now);
 
   // Earliest bookable slot is tomorrow (no same-day for the public flow).
@@ -62,12 +74,12 @@ export function generateTyreShopSlots(input: GenerateSlotsInput = {}): TyreShopS
   start.setHours(0, 0, 0, 0);
 
   const slots: TyreShopSlot[] = [];
-  for (let i = 0; i < DAYS; i++) {
+  for (let i = 0; i < windowDays; i++) {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
-    if (d.getDay() === 0) continue; // Closed Sundays
+    if (!sundaysOpen && d.getDay() === 0) continue;
     const dateStr = isoDate(d);
-    for (const t of SLOT_TIMES) {
+    for (const t of slotTimes) {
       slots.push({
         date: dateStr,
         time: t,
@@ -82,8 +94,13 @@ export function expectedReadyDateLabel(input: {
   isBackorder: boolean;
   backorderEtaWorkingDays: number;
   from?: Date;
+  sundaysOpen?: boolean;
 }): string | undefined {
   if (!input.isBackorder) return undefined;
-  const d = shiftWorkingDays(input.from ?? new Date(), input.backorderEtaWorkingDays);
+  const d = shiftWorkingDays(
+    input.from ?? new Date(),
+    input.backorderEtaWorkingDays,
+    input.sundaysOpen === true,
+  );
   return isoDate(d);
 }

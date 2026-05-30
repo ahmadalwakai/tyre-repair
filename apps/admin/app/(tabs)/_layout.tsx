@@ -1,9 +1,8 @@
 import React, { useEffect } from 'react';
 import { Tabs, router } from 'expo-router';
-import { Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSession } from '@/components/auth/SessionProvider';
 import { playSound } from '@/lib/sound/play-sound';
+import { FloatingTabBar } from '@/components/navigation/FloatingTabBar';
 
 /**
  * Bottom tab navigation. Only five primary destinations are visible:
@@ -16,7 +15,6 @@ import { playSound } from '@/lib/sound/play-sound';
  */
 export default function TabsLayout(): React.JSX.Element | null {
   const { isLoading, admin } = useSession();
-  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!isLoading && !admin) {
@@ -26,14 +24,9 @@ export default function TabsLayout(): React.JSX.Element | null {
 
   if (isLoading || !admin) return null;
 
-  // Lift the tab bar above the system gesture/nav area so buttons don't
-  // sit flush against the screen edge on Android. Falls back to a sensible
-  // minimum on devices that report a 0 inset.
-  const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 12 : 8);
-  const baseHeight = Platform.OS === 'web' ? 60 : 64;
-
   return (
     <Tabs
+      tabBar={(props) => <FloatingTabBar {...props} />}
       screenListeners={{
         tabPress: () => {
           void playSound('screen_change', { volume: 0.35 });
@@ -41,21 +34,6 @@ export default function TabsLayout(): React.JSX.Element | null {
       }}
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: '#15151B',
-          borderTopColor: '#2A2A33',
-          borderTopWidth: 1,
-          height: baseHeight + bottomInset,
-          paddingBottom: bottomInset,
-          paddingTop: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
-          letterSpacing: 0.2,
-        },
-        tabBarActiveTintColor: '#D4AF37',
-        tabBarInactiveTintColor: '#A0A0A8',
         tabBarAllowFontScaling: false,
       }}
     >

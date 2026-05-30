@@ -6,9 +6,10 @@ export const motion = {
     decelerate:  [0, 0, 0.2, 1]   as const,
     accelerate:  [0.4, 0, 1, 1]   as const,
   },
+  // Emergency red glow (replaces former gold glow).
   glow: {
-    soft:   '0 0 12px rgba(255,215,0,0.35)',
-    medium: '0 0 20px rgba(255,215,0,0.55)',
-    strong: '0 0 32px rgba(255,215,0,0.75), 0 0 60px rgba(212,175,55,0.40)',
+    soft:   '0 0 12px rgba(240,24,37,0.35)',
+    medium: '0 0 20px rgba(240,24,37,0.55)',
+    strong: '0 0 32px rgba(240,24,37,0.75), 0 0 60px rgba(143,0,16,0.40)',
   },
 } as const;

@@ -1,12 +1,16 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, RefreshControl, Text, TextInput, View } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { Alert, Pressable, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
+import { FlashList } from '@shopify/flash-list';
+import { useInfiniteQuery, useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { AppShell, ScreenHeader } from '@/components/layout/AppShell';
 import { GoldCard } from '@/components/ui/GoldCard';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { StatusBadge } from '@/components/ui/StatusBadge';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { ErrorState, EmptyState } from '@/components/ui/States';
-import { SkeletonCardList } from '@/components/ui/Skeleton';
+import { BookingCardSkeletonList } from '@/components/ui/Skeleton';
+import { AnimatedListItem } from '@/components/ui/AnimatedListItem';
 import { OfflineBanner } from '@/components/system/OfflineBanner';
 import {
   BookingFilters,
@@ -19,6 +23,8 @@ import { convertBookingToReplacement } from '@/lib/api/adjustments';
 import { sendBookingPaymentLinkWithConfirm } from '@/lib/send-payment-link';
 import { ApiError } from '@/lib/api/client';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useRefresh } from '@/hooks/useRefresh';
+import { qk } from '@/lib/query/keys';
 import { runIfOnline } from '@/lib/offline-guard';
 import { useToast } from '@/components/ui/Toast';
 import { bookingStatusLabel, formatUkPhoneForDisplay } from '@/lib/format/labels';
@@ -116,7 +122,7 @@ function BookingRow({
   };
 
   return (
-    <Pressable onPress={onOpen}>
+    <PressableScale onPress={onOpen}>
       <GoldCard className="mb-3">
         <View className="flex-row items-start justify-between mb-2">
           <View className="flex-1">
@@ -271,64 +277,85 @@ function BookingRow({
           </View>
         ) : null}
       </GoldCard>
-    </Pressable>
+    </PressableScale>
   );
 }
 
 export default function BookingsScreen(): React.JSX.Element {
   const { online } = useNetworkStatus();
   const [filter, setFilter] = useState<BookingFilterState>(INITIAL_FILTER);
-  const [page, setPage] = useState(1);
-  const [items, setItems] = useState<BookingListItem[]>([]);
-  const [total, setTotal] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const query = useMemo(() => filterStateToQuery(filter, page, PAGE_SIZE), [filter, page]);
-
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      const res = await listBookings(query);
-      setItems(res.data ?? res.items ?? []);
-      setTotal(res.total ?? 0);
-      setTotalPages(res.totalPages ?? 1);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Could not load bookings');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [query]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
   const toast = useToast();
-  const advance = useCallback(
-    async (bookingId: string, toStatus: BookingStatus) => {
-      try {
-        await updateBookingStatus(bookingId, toStatus);
-        toast.success(`Status updated to ${bookingStatusLabel(toStatus)}`);
-        await load();
-      } catch (e) {
-        const msg = e instanceof ApiError ? e.message : 'Could not update booking';
-        toast.error(msg);
-        setError(msg);
-      }
+  const qc = useQueryClient();
+
+  // Base query (without `page`) feeds both the infinite key and the loader.
+  const baseQuery = useMemo(() => filterStateToQuery(filter, 1, PAGE_SIZE), [filter]);
+  const infiniteKey = qk.bookingsList({ ...baseQuery, page: undefined });
+
+  const listQuery = useInfiniteQuery({
+    queryKey: infiniteKey,
+    queryFn: ({ pageParam = 1 }) => listBookings({ ...baseQuery, page: pageParam as number }),
+    initialPageParam: 1,
+    getNextPageParam: (last, pages) => {
+      const total = last.totalPages ?? 1;
+      const next = pages.length + 1;
+      return next <= total ? next : undefined;
     },
-    [load, toast],
+  });
+
+  const items: BookingListItem[] = useMemo(
+    () => (listQuery.data?.pages ?? []).flatMap((p) => p.data ?? p.items ?? []),
+    [listQuery.data],
   );
+  const total = listQuery.data?.pages[0]?.total ?? 0;
+  const loading = listQuery.isLoading;
+  const error =
+    listQuery.isError && listQuery.error instanceof Error ? listQuery.error.message : null;
+
+  const { refreshControl } = useRefresh(() => listQuery.refetch());
+
+  type PageShape = Awaited<ReturnType<typeof listBookings>>;
+  type InfShape = InfiniteData<PageShape>;
+
+  const advanceMutation = useMutation({
+    mutationFn: ({ bookingId, toStatus }: { bookingId: string; toStatus: BookingStatus }) =>
+      updateBookingStatus(bookingId, toStatus),
+    onMutate: async ({ bookingId, toStatus }) => {
+      await qc.cancelQueries({ queryKey: qk.bookings() });
+      const previous = qc.getQueryData<InfShape>(infiniteKey);
+      if (previous) {
+        const nextPages: PageShape[] = previous.pages.map((pg) => {
+          const replace = (arr: BookingListItem[]) =>
+            arr.map((b) => (b.bookingId === bookingId ? { ...b, status: toStatus } : b));
+          if (pg.data) return { ...pg, data: replace(pg.data) };
+          if (pg.items) return { ...pg, items: replace(pg.items) };
+          return pg;
+        });
+        qc.setQueryData<InfShape>(infiniteKey, { ...previous, pages: nextPages });
+      }
+      return { previous };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.previous) qc.setQueryData(infiniteKey, ctx.previous);
+      toast.error(err instanceof ApiError ? err.message : 'Could not update booking');
+    },
+    onSuccess: (_res, { toStatus }) => {
+      toast.success(`Status updated to ${bookingStatusLabel(toStatus)}`);
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: qk.bookings() });
+    },
+  });
+
+  const advance = (bookingId: string, toStatus: BookingStatus): void => {
+    advanceMutation.mutate({ bookingId, toStatus });
+  };
 
   return (
     <AppShell>
       <OfflineBanner />
       <ScreenHeader
         title="Bookings"
-        subtitle={`Page ${page} of ${totalPages} · ${total} total`}
+        {...(total ? { subtitle: `${items.length} of ${total} loaded` } : {})}
         right={
           <GoldButton
             label="+ New"
@@ -340,56 +367,48 @@ export default function BookingsScreen(): React.JSX.Element {
         state={filter}
         onChange={(next) => {
           setFilter(next);
-          setPage(1);
         }}
       />
       {loading ? (
-        <SkeletonCardList count={5} />
+        <BookingCardSkeletonList count={5} />
       ) : error ? (
-        <ErrorState message={error} onRetry={() => { setLoading(true); void load(); }} />
+        <ErrorState message={error} onRetry={() => void listQuery.refetch()} />
       ) : items.length === 0 ? (
-        <EmptyState message="No bookings match these filters. Try widening the date range or clearing the search." />
+        <EmptyState
+          illustration="bookings"
+          title="No bookings yet"
+          message="No bookings match these filters. Try widening the date range or clearing the search."
+        />
       ) : (
-        <FlatList
+        <FlashList
           data={items}
           keyExtractor={(b) => b.bookingId}
-          renderItem={({ item }) => (
-            <BookingRow
-              item={item}
-              online={online}
-              onAdvance={(next) => void advance(item.bookingId, next)}
-              onOpen={() => router.push(`/bookings/${item.bookingId}` as never)}
-            />
+          renderItem={({ item, index }) => (
+            <AnimatedListItem index={index} disabled={index > 8}>
+              <BookingRow
+                item={item}
+                online={online}
+                onAdvance={(next) => advance(item.bookingId, next)}
+                onOpen={() => router.push(`/bookings/${item.bookingId}` as never)}
+              />
+            </AnimatedListItem>
           )}
           contentContainerStyle={{ padding: 12, paddingBottom: 80 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                void load();
-              }}
-              tintColor="#D4AF37"
-            />
-          }
+          refreshControl={refreshControl}
+          onEndReached={() => {
+            if (listQuery.hasNextPage && !listQuery.isFetchingNextPage) {
+              void listQuery.fetchNextPage();
+            }
+          }}
+          onEndReachedThreshold={0.4}
           ListFooterComponent={
-            totalPages > 1 ? (
-              <View className="flex-row justify-center items-center gap-3 mt-2">
-                <GoldButton
-                  label="◀ Prev"
-                  variant="secondary"
-                  disabled={page <= 1}
-                  onPress={() => setPage((p) => Math.max(1, p - 1))}
-                />
-                <Text className="text-text self-center">
-                  {page} / {totalPages}
-                </Text>
-                <GoldButton
-                  label="Next ▶"
-                  variant="secondary"
-                  disabled={page >= totalPages}
-                  onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
-                />
+            listQuery.isFetchingNextPage ? (
+              <View className="py-4 items-center">
+                <Text className="text-text-dim text-xs">Loading more…</Text>
+              </View>
+            ) : !listQuery.hasNextPage && items.length > 0 ? (
+              <View className="py-4 items-center">
+                <Text className="text-text-dim text-xs">No more results</Text>
               </View>
             ) : null
           }

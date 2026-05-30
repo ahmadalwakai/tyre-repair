@@ -7,6 +7,10 @@ import { ErrorState, LoadingState } from '@/components/ui/States';
 import { OfflineBanner } from '@/components/system/OfflineBanner';
 import { PromoBannerSettingsPanel } from '@/components/settings/PromoBannerSettingsPanel';
 import { ServiceAvailabilityPanel } from '@/components/settings/ServiceAvailabilityPanel';
+import { TyreShopBookingExtrasPanel } from '@/components/settings/TyreShopBookingExtrasPanel';
+import { MessageTemplatesEditorPanel } from '@/components/settings/MessageTemplatesEditorPanel';
+import { CoverageZonesPanel } from '@/components/settings/CoverageZonesPanel';
+import { SeoPagesPanel } from '@/components/settings/SeoPagesPanel';
 import {
   getOperationalSettings,
   updateOperationalSettings,
@@ -163,6 +167,26 @@ export default function OperationalSettingsScreen(): React.JSX.Element {
           {/* Admin Efficiency Pack F11 — Service availability */}
           <View>
             <ServiceAvailabilityPanel />
+          </View>
+
+          {/* Buy-Tyres booking window & pricing extras (was hardcoded). */}
+          <View>
+            <TyreShopBookingExtrasPanel />
+          </View>
+
+          {/* Customer SMS / WhatsApp templates (was hardcoded). */}
+          <View>
+            <MessageTemplatesEditorPanel />
+          </View>
+
+          {/* Scotland coverage zones (was hardcoded array). */}
+          <View>
+            <CoverageZonesPanel />
+          </View>
+
+          {/* SEO pages (per-page metadata + recommendations engine). */}
+          <View>
+            <SeoPagesPanel />
           </View>
         </ScrollView>
       )}

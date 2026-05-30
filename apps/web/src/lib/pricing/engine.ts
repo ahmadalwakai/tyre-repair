@@ -20,10 +20,9 @@ import { calculateDistanceFactor } from './distance';
 import { calculateDemandFactor } from './demand';
 import { calculateOverrideFactor } from './overrides';
 import { getWeatherPricingFactor } from './weather';
+import { getPricingExtras } from './settings';
 import { availabilityFromQuantity } from '@/lib/quote/tyres';
 import type { TyreTier, TyreType } from '@/types/quote';
-
-const QUOTE_EXPIRY_MINUTES = 30;
 
 interface ResolvedLocation {
   locationId: string | null;
@@ -161,7 +160,13 @@ export async function calculateDynamicQuote(
   const tyre: TyrePricingSnapshot | null = tyreAndStock ? tyreAndStock.tyre : null;
   const stock: StockPricingSnapshot | null = tyreAndStock ? tyreAndStock.stock : null;
 
-  const time = calculateTimeFactor(rules, now);
+  const extras = await getPricingExtras();
+  const time = calculateTimeFactor(rules, now, {
+    peakStart: extras.peakMorningStartHour,
+    peakEnd: extras.peakMorningEndHour,
+    nightStart: extras.nightStartHour,
+    nightEnd: extras.nightEndHour,
+  });
   const date = calculateDateFactor(rules, now);
   const distance = calculateDistanceFactor(rules, {
     latitude: resolvedLocation?.latitude ?? null,
@@ -202,11 +207,23 @@ export async function calculateDynamicQuote(
 
   const multipliedTyrePriceGbp = multiplyMoney(baseGbp, totalMultiplier);
   const distanceFeeGbp = distance.feeGbp;
-  const preVatSubtotalGbp = addMoney(multipliedTyrePriceGbp, distanceFeeGbp);
+  const calloutBaseFeeGbp = roundGbp(extras.calloutBaseFeeGbp);
+  const preVatSubtotalGbp = addMoney(
+    multipliedTyrePriceGbp,
+    distanceFeeGbp,
+    calloutBaseFeeGbp,
+  );
+
   // VAT removed: business is not VAT registered.
   const vatRate = 0;
   const vatAmountGbp: string = '0.00';
-  const totalPriceGbp = preVatSubtotalGbp;
+
+  // Back-office safety floor. The callout base above usually puts even the
+  // cheapest tyre above the floor; this just guards against mis-configuration.
+  const minTotalPence = Math.round(extras.minimumQuoteTotalGbp * 100);
+  const subtotalPence = Math.round(Number(preVatSubtotalGbp) * 100);
+  const totalPriceGbp =
+    minTotalPence > subtotalPence ? roundGbp(minTotalPence / 100) : preVatSubtotalGbp;
 
   const notes: string[] = [];
   if (isAssessment) {
@@ -248,7 +265,7 @@ export async function calculateDynamicQuote(
   };
 
   const calculatedAt = now.toISOString();
-  const expiresAt = new Date(now.getTime() + QUOTE_EXPIRY_MINUTES * 60_000).toISOString();
+  const expiresAt = new Date(now.getTime() + extras.quoteExpiryMinutes * 60_000).toISOString();
   const availability = stock
     ? availabilityFromQuantity(stock.quantityAvailable, stock.lowStockThreshold)
     : 'in_stock';

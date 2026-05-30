@@ -5,7 +5,7 @@ import { GoldButton } from '@/components/ui/GoldButton';
 import { GoldCard } from '@/components/ui/GoldCard';
 import { GoldInput } from '@/components/ui/GoldInput';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui/States';
-import { importStockCsv, listStock, patchStock } from '@/lib/api/stock';
+import { importStockCsv, listStock, patchStock, patchTyrePrice } from '@/lib/api/stock';
 import { setStockFastFit } from '@/lib/api/admin-efficiency';
 import type { StockItem } from '@/types/stock';
 import { ApiError } from '@/lib/api/client';
@@ -46,6 +46,9 @@ function StockRow({
         <Text className="text-text-muted text-sm mt-2">
           Qty {item.quantityAvailable} · low ≤ {item.lowStockThreshold} · reserved {item.reservedQuantity}
         </Text>
+        <Text className="text-gold text-sm font-semibold mt-1">
+          £{item.basePriceGbp.toFixed(2)} per tyre
+        </Text>
         <Pressable
           onPress={(e) => {
             e.stopPropagation();
@@ -75,6 +78,7 @@ export default function StockScreen(): React.JSX.Element {
   const [qty, setQty] = useState('0');
   const [low, setLow] = useState('0');
   const [reserved, setReserved] = useState('0');
+  const [priceGbp, setPriceGbp] = useState('0');
   const [saving, setSaving] = useState(false);
 
   const [csvOpen, setCsvOpen] = useState(false);
@@ -103,17 +107,24 @@ export default function StockScreen(): React.JSX.Element {
     setQty(String(item.quantityAvailable));
     setLow(String(item.lowStockThreshold));
     setReserved(String(item.reservedQuantity));
+    setPriceGbp(item.basePriceGbp.toFixed(2));
   };
 
   const save = async (): Promise<void> => {
     if (!editing) return;
     setSaving(true);
     try {
+      const newPrice = Number(priceGbp);
+      const priceValid = Number.isFinite(newPrice) && newPrice > 0;
+      const priceChanged = priceValid && Math.abs(newPrice - editing.basePriceGbp) >= 0.005;
       await patchStock(editing.stockId, {
         quantityAvailable: Number(qty),
         lowStockThreshold: Number(low),
         reservedQuantity: Number(reserved),
       });
+      if (priceChanged) {
+        await patchTyrePrice(editing.tyreId, Number(newPrice.toFixed(2)));
+      }
       setEditing(null);
       await load();
     } catch (e) {
@@ -192,7 +203,7 @@ export default function StockScreen(): React.JSX.Element {
                 setRefreshing(true);
                 void load();
               }}
-              tintColor="#D4AF37"
+              tintColor="#E30613"
             />
           }
         />
@@ -214,6 +225,13 @@ export default function StockScreen(): React.JSX.Element {
             <GoldInput label="Low stock threshold" keyboardType="number-pad" value={low} onChangeText={setLow} />
             <View className="h-2" />
             <GoldInput label="Reserved" keyboardType="number-pad" value={reserved} onChangeText={setReserved} />
+            <View className="h-2" />
+            <GoldInput
+              label="Base price (£ per tyre)"
+              keyboardType="decimal-pad"
+              value={priceGbp}
+              onChangeText={setPriceGbp}
+            />
             <View className="h-3" />
             <GoldButton label="Save" onPress={save} loading={saving} />
             <View className="h-2" />

@@ -3,9 +3,11 @@ export const colors = {
   surface: '#15151B',
   surfaceMuted: '#1F1F26',
   border: '#2A2A33',
-  gold: '#D4AF37',
-  goldSoft: '#E8C766',
-  goldDeep: '#A8851D',
+  // Brand — emergency red (matches website). Token NAMES kept as `gold*`
+  // for backwards compatibility; the values are red.
+  gold: '#E30613',
+  goldSoft: '#FF6B7A',
+  goldDeep: '#8F0010',
   text: '#F5F5F7',
   textMuted: '#A0A0A8',
   textDim: '#6B6B75',

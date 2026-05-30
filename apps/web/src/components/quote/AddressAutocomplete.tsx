@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState, type ComponentType, type FormEvent, type ReactNode } from 'react';
 import dynamic from 'next/dynamic';
-import { Field, Input, Stack, Text } from '@chakra-ui/react';
+import { Box, Field, Input, Stack, Text } from '@chakra-ui/react';
 import { GoldButton } from '@/components/ui/GoldButton';
 import type { ManualAddressInput } from '@/types/quote';
 
@@ -53,18 +53,24 @@ const AddressAutofill = dynamic<MapboxAddressAutofillProps>(
 );
 
 export function AddressAutocomplete({ initial, onSubmit }: AddressAutocompleteProps) {
-  const [addressLine1, setAddressLine1] = useState(initial?.addressLine1 ?? '');
-  const [addressLine2, setAddressLine2] = useState(initial?.addressLine2 ?? '');
-  const [city, setCity] = useState(initial?.city ?? '');
-  const [postcode, setPostcode] = useState(initial?.postcode ?? '');
-  const [latitude, setLatitude] = useState<number | null>(
-    typeof initial?.latitude === 'number' ? initial.latitude : null,
-  );
-  const [longitude, setLongitude] = useState<number | null>(
-    typeof initial?.longitude === 'number' ? initial.longitude : null,
-  );
-  const [mapboxPlaceId, setMapboxPlaceId] = useState<string | null>(
-    initial?.mapboxPlaceId ?? null,
+  const hasInitialSelection =
+    Boolean(initial?.addressLine1 && initial?.postcode) &&
+    typeof initial?.latitude === 'number' &&
+    typeof initial?.longitude === 'number';
+
+  const [query, setQuery] = useState(initial?.addressLine1 ?? '');
+  const [selected, setSelected] = useState<ManualAddressInput | null>(
+    hasInitialSelection
+      ? {
+          addressLine1: initial!.addressLine1!,
+          city: initial!.city ?? '',
+          postcode: (initial!.postcode ?? '').toUpperCase(),
+          ...(initial!.addressLine2 ? { addressLine2: initial!.addressLine2 } : {}),
+          latitude: initial!.latitude as number,
+          longitude: initial!.longitude as number,
+          ...(initial!.mapboxPlaceId ? { mapboxPlaceId: initial!.mapboxPlaceId } : {}),
+        }
+      : null,
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -76,71 +82,61 @@ export function AddressAutocomplete({ initial, onSubmit }: AddressAutocompletePr
     [],
   );
 
-  const clearGeocode = () => {
-    if (latitude != null || longitude != null || mapboxPlaceId) {
-      setLatitude(null);
-      setLongitude(null);
-      setMapboxPlaceId(null);
-    }
-  };
-
   const handleRetrieve = (res: MapboxRetrieveResponse) => {
     const feature = res.features?.[0];
     if (!feature) return;
     const props = feature.properties ?? {};
-    const line1 = props.address_line1 ?? props.feature_name ?? '';
-    const line2 = props.address_line2 ?? '';
-    // UK city: prefer address_level2 (post town), fall back to place / level1.
-    const cityValue =
-      props.address_level2 ?? props.place ?? props.address_level1 ?? '';
-    const post = (props.postcode ?? '').toUpperCase();
+    const line1 = (props.address_line1 ?? props.feature_name ?? '').trim();
+    const line2 = (props.address_line2 ?? '').trim();
+    const cityValue = (
+      props.address_level2 ?? props.place ?? props.address_level1 ?? ''
+    ).trim();
+    const post = (props.postcode ?? '').toUpperCase().trim();
     const coords = feature.geometry?.coordinates;
-    setAddressLine1(line1);
-    setAddressLine2(line2);
-    setCity(cityValue);
-    setPostcode(post);
-    if (Array.isArray(coords) && coords.length === 2) {
-      setLongitude(coords[0]);
-      setLatitude(coords[1]);
+    const hasCoords = Array.isArray(coords) && coords.length === 2;
+
+    if (!line1 || !post || !hasCoords) {
+      setError('That address is missing a postcode — please pick another suggestion.');
+      return;
     }
-    setMapboxPlaceId(props.mapbox_id ?? null);
+
+    const value: ManualAddressInput = {
+      addressLine1: line1,
+      city: cityValue,
+      postcode: post,
+      latitude: coords[1],
+      longitude: coords[0],
+    };
+    if (line2) value.addressLine2 = line2;
+    if (props.mapbox_id) value.mapboxPlaceId = props.mapbox_id;
+
+    setSelected(value);
+    setQuery(line1);
     setError(null);
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!addressLine1.trim() || !city.trim() || !postcode.trim()) {
-      setError('Please fill in address line 1, city and postcode.');
+    if (!selected) {
+      setError('Please pick an address from the suggestions.');
       return;
     }
     setError(null);
-    const value: ManualAddressInput = {
-      addressLine1: addressLine1.trim(),
-      city: city.trim(),
-      postcode: postcode.trim(),
-    };
-    if (addressLine2.trim()) value.addressLine2 = addressLine2.trim();
-    if (latitude != null && longitude != null) {
-      value.latitude = latitude;
-      value.longitude = longitude;
-    }
-    if (mapboxPlaceId) value.mapboxPlaceId = mapboxPlaceId;
-    onSubmit(value);
+    onSubmit(selected);
   };
 
-  const line1Input = (
+  const searchInput = (
     <Input
-      value={addressLine1}
+      value={query}
       onChange={(e) => {
-        setAddressLine1(e.target.value);
-        // User edited manually after a suggestion → drop stale coords/place id.
-        clearGeocode();
+        setQuery(e.target.value);
+        if (selected) setSelected(null);
       }}
       bg="bg.canvas"
       borderColor="border.subtle"
       color="fg.default"
       autoComplete="address-line1"
-      placeholder={mapboxToken ? 'Start typing your address…' : undefined}
+      placeholder="Start typing your address or postcode…"
     />
   );
 
@@ -148,60 +144,47 @@ export function AddressAutocomplete({ initial, onSubmit }: AddressAutocompletePr
     <form onSubmit={handleSubmit} noValidate>
       <Stack gap="3">
         <Field.Root>
-          <Field.Label color="fg.default">Address line 1</Field.Label>
+          <Field.Label color="fg.default">Address or postcode</Field.Label>
           {mapboxToken ? (
             <AddressAutofill
               accessToken={mapboxToken}
               options={{ country: 'GB', language: 'en' }}
               onRetrieve={handleRetrieve}
             >
-              {line1Input}
+              {searchInput}
             </AddressAutofill>
           ) : (
-            line1Input
+            searchInput
           )}
+          <Field.HelperText color="fg.muted">
+            Pick a suggestion so we get an exact postcode and pin.
+          </Field.HelperText>
         </Field.Root>
-        <Field.Root>
-          <Field.Label color="fg.default">Address line 2 (optional)</Field.Label>
-          <Input
-            value={addressLine2}
-            onChange={(e) => setAddressLine2(e.target.value)}
-            bg="bg.canvas"
-            borderColor="border.subtle"
-            color="fg.default"
-            autoComplete="address-line2"
-          />
-        </Field.Root>
-        <Stack direction={{ base: 'column', sm: 'row' }} gap="3">
-          <Field.Root flex="1">
-            <Field.Label color="fg.default">City</Field.Label>
-            <Input
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              bg="bg.canvas"
-              borderColor="border.subtle"
-              color="fg.default"
-              autoComplete="address-level2"
-            />
-          </Field.Root>
-          <Field.Root flex="1">
-            <Field.Label color="fg.default">Postcode</Field.Label>
-            <Input
-              value={postcode}
-              onChange={(e) => setPostcode(e.target.value.toUpperCase())}
-              bg="bg.canvas"
-              borderColor="border.subtle"
-              color="fg.default"
-              autoComplete="postal-code"
-            />
-          </Field.Root>
-        </Stack>
+
+        {selected && (
+          <Box
+            p="3"
+            borderRadius="md"
+            borderWidth="1px"
+            borderColor="border.gold"
+            bg="bg.surface"
+          >
+            <Text fontFamily="heading" fontSize="xs" color="accent.neon" mb="1">
+              Selected address
+            </Text>
+            <Text color="fg.default" fontSize="sm">
+              {selected.addressLine1}
+              {selected.city ? `, ${selected.city}` : ''} · {selected.postcode}
+            </Text>
+          </Box>
+        )}
+
         {error && (
           <Text color="accent.neon" fontSize="sm">
             {error}
           </Text>
         )}
-        <GoldButton type="submit" variant="solid">
+        <GoldButton type="submit" variant="solid" disabled={!selected}>
           Use this address
         </GoldButton>
       </Stack>

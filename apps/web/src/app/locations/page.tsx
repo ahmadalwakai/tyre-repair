@@ -14,7 +14,7 @@ import { getLocationPagesByPriority } from '@/lib/seo/location-pages';
 export const metadata: Metadata = buildSeoMetadata({
   title: 'Mobile Tyre Fitting Locations Across Scotland | TyreRepair UK',
   description:
-    'Browse mobile tyre fitting locations across Scotland — Glasgow, Edinburgh, Aberdeen, Dundee, Inverness and 350+ more towns covered from our Glasgow base.',
+    'Browse mobile tyre fitting locations across Scotland — Glasgow, Edinburgh, Aberdeen, Dundee, Inverness and 350+ more towns. Scotland-wide mobile fleet — vans come to you.',
   path: '/locations',
 });
 
@@ -40,8 +40,8 @@ export default function LocationsIndexPage() {
                 Mobile tyre fitting locations across Scotland
               </Heading>
               <Text color="fg.muted" fontSize={{ base: 'md', md: 'lg' }} maxW="3xl" lineHeight="1.7">
-                Pick the closest location to you. Every page is mobile cover from our Glasgow base —
-                we never run a fake branch and we are always honest about travel times.
+                Pick the closest location to you. Every page is real mobile cover — our Scotland-wide
+                fleet of vans comes to you. No fake branches, honest travel times.
               </Text>
             </Stack>
           </Container>

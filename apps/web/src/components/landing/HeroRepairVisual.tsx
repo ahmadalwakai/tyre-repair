@@ -72,8 +72,8 @@ export function HeroRepairVisual() {
       overflow="hidden"
       bg="#0A0A0A"
       borderWidth="1px"
-      borderColor="rgba(212,175,55,0.35)"
-      boxShadow="0 0 40px rgba(255,215,0,0.12), inset 0 0 0 1px rgba(255,215,0,0.05)"
+      borderColor="accent.neon"
+      boxShadow="0 0 0 1px rgba(240,24,37,0.4), 0 0 32px rgba(240,24,37,0.35), inset 0 0 18px rgba(240,24,37,0.1)"
       px={{ base: '4', md: '5' }}
       py={{ base: '4', md: '5' }}
     >
@@ -129,7 +129,7 @@ export function HeroRepairVisual() {
                 <motion.path
                   d="M 200 40 Q 160 30 130 60"
                   fill="none"
-                  stroke="#FFD700"
+                  stroke="#E30613"
                   strokeWidth="3"
                   strokeLinecap="round"
                   initial={{ pathLength: 0 }}
@@ -139,7 +139,7 @@ export function HeroRepairVisual() {
                 <motion.polyline
                   points="124,52 130,60 122,68"
                   fill="none"
-                  stroke="#FFD700"
+                  stroke="#E30613"
                   strokeWidth="3"
                   strokeLinecap="round"
                   strokeLinejoin="round"

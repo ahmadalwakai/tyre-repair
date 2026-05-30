@@ -108,7 +108,7 @@ export async function sendBookingCancellationEmail(
   const text = lines.filter(Boolean).join('\n');
 
   const html = `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#0A0A0A;color:#FFFFFF;padding:24px">
-    <h2 style="color:#FFD700;margin:0 0 12px">TyreRepair UK booking cancellation update</h2>
+    <h2 style="color:#E30613;margin:0 0 12px">TyreRepair UK booking cancellation update</h2>
     <p>${greeting}</p>
     <p>Your booking <strong>${input.trackingId}</strong> has been cancelled.</p>
     <p><strong>Reason:</strong> ${escapeHtml(input.reason)}</p>
@@ -117,9 +117,9 @@ export async function sendBookingCancellationEmail(
     ${input.refundDueGbp ? `<p>Marked for refund review: <strong>£${input.refundDueGbp}</strong></p>` : ''}
     ${depositCopy ? `<p>${escapeHtml(depositCopy)}</p>` : ''}
     ${input.customerMessage ? `<p>${escapeHtml(input.customerMessage)}</p>` : ''}
-    <p style="margin-top:18px"><a style="color:#D4AF37" href="${input.cancellationPolicyUrl}">Read our cancellation policy</a></p>
+    <p style="margin-top:18px"><a style="color:#E30613" href="${input.cancellationPolicyUrl}">Read our cancellation policy</a></p>
     ${input.businessPhone ? `<p style="color:#B8B8B8;font-size:13px">Need help? Call ${input.businessPhone}.</p>` : ''}
-    ${input.whatsappLink ? `<p style="color:#B8B8B8;font-size:13px"><a style="color:#D4AF37" href="${input.whatsappLink}">WhatsApp us</a></p>` : ''}
+    ${input.whatsappLink ? `<p style="color:#B8B8B8;font-size:13px"><a style="color:#E30613" href="${input.whatsappLink}">WhatsApp us</a></p>` : ''}
   </body></html>`;
 
   try {

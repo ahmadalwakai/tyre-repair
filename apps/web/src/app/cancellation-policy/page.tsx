@@ -13,7 +13,7 @@ export default function CancellationPolicyPage() {
     <Box bg="black" minH="100vh" color="white" py={{ base: 8, md: 16 }}>
       <Container maxW="3xl">
         <Stack gap={6}>
-          <Heading as="h1" size="xl" color="brand.gold" fontFamily="heading">
+          <Heading as="h1" size="xl" color="accent.solid" fontFamily="heading">
             Cancellation Policy
           </Heading>
           <Text color="gray.300">
@@ -23,7 +23,7 @@ export default function CancellationPolicyPage() {
           </Text>
 
           <Stack gap={3}>
-            <Heading as="h2" size="md" color="brand.gold">
+            <Heading as="h2" size="md" color="accent.solid">
               Emergency service
             </Heading>
             <Text color="gray.300">
@@ -35,7 +35,7 @@ export default function CancellationPolicyPage() {
           </Stack>
 
           <Stack gap={3}>
-            <Heading as="h2" size="md" color="brand.gold">
+            <Heading as="h2" size="md" color="accent.solid">
               15% dispatch deposit
             </Heading>
             <Text color="gray.300">
@@ -52,7 +52,7 @@ export default function CancellationPolicyPage() {
           </Stack>
 
           <Stack gap={3}>
-            <Heading as="h2" size="md" color="brand.gold">
+            <Heading as="h2" size="md" color="accent.solid">
               When you may receive a refund
             </Heading>
             <Text color="gray.300">
@@ -69,7 +69,7 @@ export default function CancellationPolicyPage() {
           </Stack>
 
           <Stack gap={3}>
-            <Heading as="h2" size="md" color="brand.gold">
+            <Heading as="h2" size="md" color="accent.solid">
               Full payments
             </Heading>
             <Text color="gray.300">
@@ -82,7 +82,7 @@ export default function CancellationPolicyPage() {
           </Stack>
 
           <Stack gap={3}>
-            <Heading as="h2" size="md" color="brand.gold">
+            <Heading as="h2" size="md" color="accent.solid">
               Special order tyres
             </Heading>
             <Text color="gray.300">
@@ -93,16 +93,16 @@ export default function CancellationPolicyPage() {
           </Stack>
 
           <Stack gap={3}>
-            <Heading as="h2" size="md" color="brand.gold">
+            <Heading as="h2" size="md" color="accent.solid">
               How to cancel
             </Heading>
             <Text color="gray.300">
               To cancel a booking, please call us on{' '}
-              <Text as="span" color="brand.gold" fontWeight="bold">
+              <Text as="span" color="accent.solid" fontWeight="bold">
                 {siteConfig.phoneDisplay}
               </Text>{' '}
               or message us on WhatsApp at{' '}
-              <Text as="span" color="brand.gold" fontWeight="bold">
+              <Text as="span" color="accent.solid" fontWeight="bold">
                 {siteConfig.whatsappDisplay}
               </Text>
               . Please have your tracking ID ready.
@@ -110,7 +110,7 @@ export default function CancellationPolicyPage() {
           </Stack>
 
           <Stack gap={3}>
-            <Heading as="h2" size="md" color="brand.gold">
+            <Heading as="h2" size="md" color="accent.solid">
               Your statutory rights
             </Heading>
             <Text color="gray.300">

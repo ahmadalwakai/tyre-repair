@@ -30,3 +30,10 @@ export function importStockCsv(csvText: string): Promise<{
 }> {
   return apiPost('/api/admin/stock/import', { csvText });
 }
+
+export function patchTyrePrice(
+  tyreId: string,
+  basePriceGbp: number,
+): Promise<{ success: boolean; tyreId: string; basePriceGbp: number; unchanged?: boolean }> {
+  return apiPatch(`/api/admin/tyres/${tyreId}/price`, { basePriceGbp });
+}

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, Switch, View, Text } from 'react-native';
+import { Linking, RefreshControl, ScrollView, Switch, View, Text } from 'react-native';
 import { AppShell, ScreenHeader } from '@/components/layout/AppShell';
 import { AdminButton } from '@/components/ui/AdminButton';
 import { GoldCard } from '@/components/ui/GoldCard';
@@ -14,6 +14,7 @@ import { getProfile, patchProfile } from '@/lib/api/settings';
 import type { AdminProfile } from '@/types/auth';
 import { ApiError } from '@/lib/api/client';
 import { NotificationPreferences } from '@/components/notifications/NotificationPreferences';
+import { BackupRestorePanel } from '@/components/settings/BackupRestorePanel';
 
 export default function SettingsScreen(): React.JSX.Element {
   const { signOut } = useSession();
@@ -88,7 +89,7 @@ export default function SettingsScreen(): React.JSX.Element {
               setRefreshing(true);
               void load().finally(() => setRefreshing(false));
             }}
-            tintColor="#D4AF37"
+            tintColor="#E30613"
           />
         }
       >
@@ -111,6 +112,8 @@ export default function SettingsScreen(): React.JSX.Element {
 
         <NotificationPreferences />
 
+        <BackupRestorePanel />
+
         <GoldCard>
           <Text className="text-text font-semibold mb-1">UI feedback sounds</Text>
           <Text className="text-text-muted text-xs mb-3">
@@ -127,8 +130,8 @@ export default function SettingsScreen(): React.JSX.Element {
                   if (next) void playSound('toast_success', { volume: 0.5 });
                 });
               }}
-              trackColor={{ true: '#D4AF37', false: '#2A2A33' }}
-              thumbColor={uiFeedbackEnabled ? '#FFD700' : '#6B6B75'}
+              trackColor={{ true: '#E30613', false: '#2A2A33' }}
+              thumbColor={uiFeedbackEnabled ? '#F01825' : '#6B6B75'}
             />
           </View>
         </GoldCard>
@@ -142,6 +145,21 @@ export default function SettingsScreen(): React.JSX.Element {
             onPress={() => void signOut()}
           />
         </GoldCard>
+
+        <View className="items-center mt-4 mb-2 px-4">
+          <Text className="text-text-dim text-[11px] text-center">
+            Made with Love by Mr Ahmad Alwakai
+          </Text>
+          <Text className="text-text-dim text-[11px] text-center">
+            Lead developer of{' '}
+            <Text
+              className="text-gold underline"
+              onPress={() => void Linking.openURL('https://www.zyphonsystems.com/')}
+            >
+              zyphonsystems.com
+            </Text>
+          </Text>
+        </View>
       </ScrollView>
     </AppShell>
   );

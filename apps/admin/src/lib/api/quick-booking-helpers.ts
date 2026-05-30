@@ -125,6 +125,16 @@ export interface QuickPriceQuoteResponse {
     traffic: boolean;
     adminOverride: boolean;
   };
+  /** Engine-calculated total before any learned admin adjustment. */
+  engineTotalPriceGbp?: string;
+  /** Same as `pricing.totalPriceGbp` — the suggested figure after learning. */
+  suggestedTotalPriceGbp?: string;
+  /** Present when ≥3 recent admin overrides exist for this scenario. */
+  learnedAdjustment?: {
+    multiplier: number;
+    sampleSize: number;
+    windowDays: number;
+  } | null;
 }
 
 export type PricingRiskLevelClient =
@@ -181,7 +191,7 @@ export function fetchQuickPriceQuote(
 
 /* ---------------- Pre-booking location request ---------------- */
 
-export type LocationRequestChannel = 'SMS' | 'EMAIL' | 'WHATSAPP_LINK';
+export type LocationRequestChannel = 'SMS' | 'EMAIL' | 'WHATSAPP_LINK' | 'COPY_LINK';
 
 export interface RequestLocationInput {
   channel: LocationRequestChannel;
@@ -193,8 +203,10 @@ export interface RequestLocationInput {
 export interface RequestLocationResponse {
   success: true;
   channel: LocationRequestChannel;
-  /** External URL to open (only for WHATSAPP_LINK). */
+  /** External URL to open (only for WHATSAPP_LINK) or raw link (COPY_LINK). */
   externalUrl?: string;
+  /** Secure capture token — pass to fetchQuickBookingLocationStatus to poll. */
+  token: string;
   /** Whether the server actually delivered a message. */
   sent: boolean;
   skippedReason?: 'missing_credentials' | 'send_failed' | 'no_phone' | 'no_email';
@@ -207,5 +219,22 @@ export function requestQuickBookingLocation(
   return apiPost<RequestLocationResponse>(
     '/api/admin/quick-booking/request-location',
     body,
+  );
+}
+
+export interface LocationStatusResponse {
+  status: 'pending' | 'received' | 'expired' | 'invalid';
+  latitude?: number;
+  longitude?: number;
+  accuracyMeters?: number | null;
+  receivedAt?: string;
+}
+
+export function fetchQuickBookingLocationStatus(
+  token: string,
+): Promise<LocationStatusResponse> {
+  const qs = new URLSearchParams({ token });
+  return apiGet<LocationStatusResponse>(
+    `/api/admin/quick-booking/location-status?${qs.toString()}`,
   );
 }

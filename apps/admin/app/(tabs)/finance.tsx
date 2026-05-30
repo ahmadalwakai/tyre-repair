@@ -5,6 +5,7 @@ import { AppShell, ScreenHeader } from '@/components/layout/AppShell';
 import { GoldCard } from '@/components/ui/GoldCard';
 import { AdminButton } from '@/components/ui/AdminButton';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
+import { CountUp } from '@/components/ui/CountUp';
 import { PricingTodayCard } from '@/components/finance/PricingTodayCard';
 import { OfflineBanner } from '@/components/system/OfflineBanner';
 import {
@@ -43,6 +44,28 @@ interface HubCardProps {
   delay?: number;
 }
 
+/** Animates currency or numeric metrics; falls back to plain text otherwise. */
+function MetricDisplay({ metric }: { metric: string }): React.JSX.Element {
+  const m = /^(£)?(-?\d[\d,]*(?:\.\d+)?)$/.exec(metric);
+  if (!m) return <Text className="text-gold text-2xl font-bold">{metric}</Text>;
+  const prefix = m[1] ?? '';
+  const raw = (m[2] ?? '').replace(/,/g, '');
+  const num = Number(raw);
+  if (!Number.isFinite(num)) {
+    return <Text className="text-gold text-2xl font-bold">{metric}</Text>;
+  }
+  const decimals = raw.includes('.') ? 2 : 0;
+  return (
+    <CountUp
+      to={num}
+      duration={800}
+      decimals={decimals}
+      prefix={prefix}
+      className="text-gold text-2xl font-bold"
+    />
+  );
+}
+
 function HubCard({
   title,
   description,
@@ -58,7 +81,7 @@ function HubCard({
         <Text className="text-text-muted text-xs mt-1">{description}</Text>
         {metric !== null && metric !== '' ? (
           <View className="mt-3">
-            <Text className="text-gold text-2xl font-bold">{metric}</Text>
+            <MetricDisplay metric={metric} />
             {metricLabel ? (
               <Text className="text-text-dim text-[11px] uppercase tracking-wide mt-0.5">
                 {metricLabel}
@@ -130,7 +153,7 @@ export default function FinanceHubScreen(): React.JSX.Element {
               setRefreshing(true);
               void load().finally(() => setRefreshing(false));
             }}
-            tintColor="#D4AF37"
+            tintColor="#E30613"
           />
         }
       >

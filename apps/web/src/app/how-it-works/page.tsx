@@ -17,8 +17,10 @@ import { ServiceCta } from '@/components/services/ServiceCta';
 import { BreadcrumbJsonLd } from '@/components/seo/BreadcrumbJsonLd';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { LocalBusinessJsonLd } from '@/components/seo/LocalBusinessJsonLd';
+import { InternalLinkGrid } from '@/components/seo/InternalLinkGrid';
 import { buildSeoMetadata } from '@/lib/seo/metadata';
 import { buildWebPageSchema } from '@/lib/seo/schema';
+import { getTopServiceLinks, getTopLocationLinks } from '@/lib/seo/hub-links';
 import { siteConfig } from '@/lib/site-config';
 
 const PAGE_TITLE = 'How TyreRepair UK works';
@@ -208,6 +210,23 @@ export default function HowItWorksPage() {
               </SimpleGrid>
             </Stack>
           </Container>
+        </Box>
+
+        <Box px={{ base: '4', md: '6' }} py={{ base: '8', md: '12' }} maxW="5xl" mx="auto">
+          <InternalLinkGrid
+            title="Pick the service that matches your problem"
+            intro="Not sure what you need? Most callouts fall into one of these."
+            links={getTopServiceLinks()}
+            columns={{ base: 1, md: 2 }}
+          />
+        </Box>
+        <Box px={{ base: '4', md: '6' }} pb={{ base: '8', md: '12' }} maxW="5xl" mx="auto">
+          <InternalLinkGrid
+            title="Areas we cover"
+            intro="Top areas covered by our Scotland-wide mobile fleet."
+            links={getTopLocationLinks()}
+            columns={{ base: 1, md: 4 }}
+          />
         </Box>
 
         <ServiceCta ctaLabel={siteConfig.primaryCtaLabel} ctaHref={siteConfig.primaryCtaHref} />

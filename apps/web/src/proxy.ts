@@ -38,11 +38,16 @@ export function proxy(request: NextRequest): NextResponse {
   if (request.method === 'OPTIONS') {
     const preflight = new NextResponse(null, { status: 204 });
     if (allowed && origin) applyCorsHeaders(preflight, origin);
+    // API responses must never be indexed by search engines.
+    preflight.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
     return preflight;
   }
 
   const response = NextResponse.next();
   if (allowed && origin) applyCorsHeaders(response, origin);
+  // Belt-and-braces: even with `robots.txt` disallow, some crawlers may hit
+  // `/api/*` directly. The header guarantees no API JSON is indexed.
+  response.headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
   return response;
 }
 

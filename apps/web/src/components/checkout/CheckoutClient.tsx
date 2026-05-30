@@ -335,7 +335,7 @@ function CollectStage({ quote, paymentMode, onPaymentModeChange, onClientSecret 
                         checked={isActive}
                         onChange={() => setLockingNutStatus(opt.value)}
                         aria-label={opt.label}
-                        style={{ marginTop: '4px', accentColor: '#FFD700' }}
+                        style={{ marginTop: '4px', accentColor: '#E30613' }}
                       />
                       <Stack gap="0">
                         <Text color="fg.default" fontWeight="600" fontSize="sm">
@@ -381,7 +381,7 @@ function CollectStage({ quote, paymentMode, onPaymentModeChange, onClientSecret 
                   You must call us before completing your booking. Call{' '}
                   <a
                     href={siteConfig.phoneHref}
-                    style={{ color: '#FFD700', textDecoration: 'underline' }}
+                    style={{ color: '#E30613', textDecoration: 'underline' }}
                   >
                     {siteConfig.phoneDisplay}
                   </a>{' '}
@@ -390,7 +390,7 @@ function CollectStage({ quote, paymentMode, onPaymentModeChange, onClientSecret 
                     href={siteConfig.whatsappHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ color: '#FFD700', textDecoration: 'underline' }}
+                    style={{ color: '#E30613', textDecoration: 'underline' }}
                   >
                     {siteConfig.whatsappDisplay}
                   </a>
@@ -452,7 +452,7 @@ function CollectStage({ quote, paymentMode, onPaymentModeChange, onClientSecret 
                         checked={isActive}
                         onChange={() => onPaymentModeChange(opt.value)}
                         aria-label={opt.label}
-                        style={{ marginTop: '4px', accentColor: '#FFD700' }}
+                        style={{ marginTop: '4px', accentColor: '#E30613' }}
                       />
                       <Stack gap="0">
                         <Text color="fg.default" fontWeight="600" fontSize="sm">
@@ -483,7 +483,7 @@ function CollectStage({ quote, paymentMode, onPaymentModeChange, onClientSecret 
                       checked={acceptedDepositTerms}
                       onChange={(e) => setAcceptedDepositTerms(e.target.checked)}
                       aria-label="Accept dispatch deposit terms"
-                      style={{ marginTop: '4px', accentColor: '#FFD700' }}
+                      style={{ marginTop: '4px', accentColor: '#E30613' }}
                     />
                     <Text color="fg.default" fontSize="sm">
                       I understand this is an emergency service. I request
@@ -494,7 +494,7 @@ function CollectStage({ quote, paymentMode, onPaymentModeChange, onClientSecret 
                         href="/cancellation-policy"
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ color: '#FFD700', textDecoration: 'underline' }}
+                        style={{ color: '#E30613', textDecoration: 'underline' }}
                       >
                         cancellation policy
                       </a>

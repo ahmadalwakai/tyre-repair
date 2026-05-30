@@ -16,6 +16,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 import { playSound, type SoundKey } from '@/lib/sound/play-sound';
+import { ConfettiBurst, type ConfettiBurstHandle } from '@/components/ui/ConfettiBurst';
 
 /**
  * Lightweight in-app toast.
@@ -45,6 +46,8 @@ interface ToastContextValue {
   error: (message: string) => void;
   info: (message: string) => void;
   warning: (message: string) => void;
+  /** Success toast + confetti burst. Use sparingly for genuine wins. */
+  celebrate: (message: string) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -67,6 +70,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }): Reac
   const [toast, setToast] = useState<ToastState | null>(null);
   const counterRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const confettiRef = useRef<ConfettiBurstHandle>(null);
   const insets = useSafeAreaInsets();
 
   const opacity = useSharedValue(0);
@@ -106,6 +110,10 @@ export function ToastProvider({ children }: { children: React.ReactNode }): Reac
       error: (m: string) => show(m, 'error', 4500),
       info: (m: string) => show(m, 'info'),
       warning: (m: string) => show(m, 'warning', 4000),
+      celebrate: (m: string) => {
+        show(m, 'success');
+        confettiRef.current?.fire();
+      },
     }),
     [show],
   );
@@ -120,6 +128,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }): Reac
   return (
     <ToastContext.Provider value={value}>
       {children}
+      <ConfettiBurst ref={confettiRef} />
       {toast && tone ? (
         <View
           pointerEvents="box-none"

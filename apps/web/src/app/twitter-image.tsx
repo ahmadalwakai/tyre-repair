@@ -2,7 +2,6 @@
 // next/og ImageResponse requires inline styles — Tailwind/CSS classes are not supported.
 import { ImageResponse } from 'next/og';
 
-export const runtime = 'edge';
 export const alt = 'TyreRepair UK — Mobile Tyre Fitting Across Scotland';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
@@ -18,7 +17,7 @@ export default function Image() {
           flexDirection: 'column',
           justifyContent: 'space-between',
           background: '#0A0A0A',
-          color: '#FFD700',
+          color: '#F01825',
           padding: '72px',
           fontFamily: 'sans-serif',
         }}
@@ -29,11 +28,11 @@ export default function Image() {
               width: '14px',
               height: '14px',
               borderRadius: '999px',
-              background: '#FFD700',
-              boxShadow: '0 0 32px #FFD700',
+              background: '#F01825',
+              boxShadow: '0 0 32px #F01825',
             }}
           />
-          <div style={{ fontSize: 28, color: '#D4AF37', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 28, color: '#E30613', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
             TyreRepair UK
           </div>
         </div>
@@ -41,7 +40,7 @@ export default function Image() {
           <div style={{ fontSize: 84, fontWeight: 700, lineHeight: 1.04, color: '#F8F8F8' }}>
             Mobile Tyre Fitting
           </div>
-          <div style={{ fontSize: 64, fontWeight: 700, lineHeight: 1.04, color: '#FFD700' }}>
+          <div style={{ fontSize: 64, fontWeight: 700, lineHeight: 1.04, color: '#F01825' }}>
             Across Scotland
           </div>
         </div>

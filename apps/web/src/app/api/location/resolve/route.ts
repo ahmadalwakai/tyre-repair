@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
+import { createHash } from 'node:crypto';
 import { db, schema } from '@tyrerepair/db';
 import { locationResolveSchema } from '@/lib/quote/validation';
 import { verifyLocationCaptureToken } from '@/lib/security/location-token';
+import { writeAuditLogSafe } from '@/lib/audit/audit-log';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex').slice(0, 32);
+}
 
 export async function POST(req: Request): Promise<NextResponse> {
   let body: unknown;
@@ -48,6 +54,20 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (!row) {
       return NextResponse.json({ error: 'Could not save location' }, { status: 500 });
     }
+
+    await writeAuditLogSafe({
+      actorType: 'customer',
+      action: 'booking.location_capture.resolved',
+      entityType: 'lead',
+      entityId: row.id,
+      metadata: {
+        tokenHash: hashToken(token),
+        latitude,
+        longitude,
+        accuracyMeters: accuracyMeters ?? null,
+        method: verify.payload.method,
+      },
+    });
 
     return NextResponse.json(
       {

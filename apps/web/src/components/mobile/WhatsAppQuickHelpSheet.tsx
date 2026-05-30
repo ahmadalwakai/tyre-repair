@@ -207,7 +207,7 @@ export function WhatsAppQuickHelpSheet({
                   padding: '0 14px',
                   borderRadius: '12px',
                   border: '1px solid rgba(212,175,55,0.4)',
-                  color: '#FFD700',
+                  color: '#E30613',
                   marginTop: '4px',
                   fontWeight: 600,
                 }}
@@ -224,7 +224,7 @@ export function WhatsAppQuickHelpSheet({
                   href={defaultEmergencyHref()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ color: '#FFD700', textAlign: 'center', display: 'block' }}
+                  style={{ color: '#E30613', textAlign: 'center', display: 'block' }}
                 >
                   Open WhatsApp
                 </a>

@@ -10,10 +10,19 @@
  * this explicit.
  */
 import * as React from 'react';
-import { ActivityIndicator, Image, Linking, Pressable, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  Linking,
+  Pressable,
+  Text,
+  View,
+} from 'react-native';
 import { GoldCard } from '@/components/ui/GoldCard';
+import { RadarPulse } from '@/components/ui/RadarPulse';
+import { AnimatedBorder } from '@/components/ui/AnimatedBorder';
 import { WORKSHOP } from '@/lib/workshop';
-import { buildStaticMapUrl, hasMapboxToken } from '@/lib/mapbox';
+import { buildStaticMapWithPins, fetchDrivingRoute, hasMapboxToken } from '@/lib/mapbox';
 
 interface Customer {
   latitude: number;
@@ -32,25 +41,44 @@ interface Props {
 }
 
 const MAP_HEIGHT = 200;
+const PIN_TIP_OFFSET_Y = 14; // shift overlay rings down to sit at the pin tip
 
 export function LiveRouteLine({ customer, routeIntel }: Props): React.JSX.Element {
   const [containerWidth, setContainerWidth] = React.useState(0);
   const [imgFailed, setImgFailed] = React.useState(false);
+  const [routePolyline, setRoutePolyline] = React.useState<string | null>(null);
 
-  const mapUrl = React.useMemo(() => {
+  React.useEffect(() => {
+    if (!customer) {
+      setRoutePolyline(null);
+      return;
+    }
+    const controller = new AbortController();
+    void fetchDrivingRoute(
+      { latitude: WORKSHOP.latitude, longitude: WORKSHOP.longitude },
+      { latitude: customer.latitude, longitude: customer.longitude },
+      controller.signal,
+    ).then((r) => {
+      if (!controller.signal.aborted) setRoutePolyline(r?.encodedPolyline ?? null);
+    });
+    return () => controller.abort();
+  }, [customer?.latitude, customer?.longitude]);
+
+  const map = React.useMemo(() => {
     if (!customer || containerWidth <= 0) return null;
-    return buildStaticMapUrl({
+    return buildStaticMapWithPins({
       customer: { latitude: customer.latitude, longitude: customer.longitude },
       workshop: { latitude: WORKSHOP.latitude, longitude: WORKSHOP.longitude },
       width: containerWidth,
       height: MAP_HEIGHT,
       drawLine: true,
+      routePolyline,
     });
-  }, [customer, containerWidth]);
+  }, [customer, containerWidth, routePolyline]);
 
   React.useEffect(() => {
     setImgFailed(false);
-  }, [mapUrl]);
+  }, [map?.url]);
 
   const openExternalDirections = React.useCallback(() => {
     if (!customer) return;
@@ -64,7 +92,12 @@ export function LiveRouteLine({ customer, routeIntel }: Props): React.JSX.Elemen
 
   return (
     <GoldCard title="Route preview" icon="🛰️" eyebrow="Glasgow base → customer">
-      <View
+      <AnimatedBorder
+        radius={10}
+        strokeWidth={2}
+        color="#F01825"
+        segmentLength={120}
+        durationMs={2400}
         onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
         style={{
           width: '100%',
@@ -72,15 +105,13 @@ export function LiveRouteLine({ customer, routeIntel }: Props): React.JSX.Elemen
           borderRadius: 10,
           overflow: 'hidden',
           backgroundColor: 'rgba(255,255,255,0.04)',
-          borderWidth: 1,
-          borderColor: 'rgba(212,175,55,0.25)',
         }}
       >
         {!customer ? (
           <CenteredText text="Waiting for customer location…" />
         ) : !hasMapboxToken() ? (
           <CenteredText text="Map unavailable — EXPO_PUBLIC_MAPBOX_TOKEN is not set." warning />
-        ) : !mapUrl ? (
+        ) : !map ? (
           <View className="flex-1 items-center justify-center">
             <ActivityIndicator />
           </View>
@@ -91,17 +122,28 @@ export function LiveRouteLine({ customer, routeIntel }: Props): React.JSX.Elemen
         ) : (
           <Pressable onPress={openExternalDirections} style={{ flex: 1 }}>
             <Image
-              source={{ uri: mapUrl }}
+              source={{ uri: map.url }}
               style={{ width: '100%', height: '100%' }}
               resizeMode="cover"
               onError={() => setImgFailed(true)}
             />
+            <RadarPulse
+              x={map.customerPx.x}
+              y={map.customerPx.y + PIN_TIP_OFFSET_Y}
+              color="#F01825"
+            />
+            <RadarPulse
+              x={map.workshopPx.x}
+              y={map.workshopPx.y + PIN_TIP_OFFSET_Y}
+              color="#FFFFFF"
+              delayMs={800}
+            />
           </Pressable>
         )}
-      </View>
+      </AnimatedBorder>
 
       <View className="flex-row items-center gap-3 mt-2">
-        <LegendDot colour="#FFD700" label="Customer" />
+        <LegendDot colour="#F01825" label="Customer" />
         <LegendDot colour="#FFFFFF" label="Base" />
         <View style={{ flex: 1 }} />
         {routeIntel?.distanceMiles != null ? (
@@ -123,6 +165,11 @@ export function LiveRouteLine({ customer, routeIntel }: Props): React.JSX.Elemen
   );
 }
 
+/**
+ * Two concentric expanding/fading rings + a solid core dot. Mirrors the
+ * customer-facing capture page so the "live" feeling is consistent across
+ * the journey.
+ */
 function LegendDot({ colour, label }: { colour: string; label: string }): React.JSX.Element {
   return (
     <View className="flex-row items-center gap-1.5">

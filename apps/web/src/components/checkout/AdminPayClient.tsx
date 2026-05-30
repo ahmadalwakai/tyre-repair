@@ -117,13 +117,13 @@ export function AdminPayClient({ bookingId }: AdminPayClientProps) {
       <Box maxW="lg" mx="auto" px={4}>
         <Stack gap={6}>
           <Stack gap={1}>
-            <Text fontFamily="heading" color="brand.gold" fontSize="2xl">
+            <Text fontFamily="heading" color="accent.solid" fontSize="2xl">
               Take card payment ({heading})
             </Text>
             <Text color="gray.300">
               {session.customerName ? `Customer: ${session.customerName}. ` : ''}Amount
               to charge:{' '}
-              <Text as="span" color="brand.gold" fontWeight="bold">
+              <Text as="span" color="accent.solid" fontWeight="bold">
                 £{Number(session.amountGbp).toFixed(2)}
               </Text>
               .
@@ -189,8 +189,8 @@ function AdminPayForm({ trackingId, amountGbp }: AdminPayFormProps) {
         ) : null}
         <Button
           type="submit"
-          bg="brand.gold"
-          color="black"
+          bg="accent.solid"
+          color="white"
           fontFamily="heading"
           disabled={status === 'processing' || !stripe || !elements}
           loading={status === 'processing'}

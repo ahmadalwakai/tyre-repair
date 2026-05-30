@@ -110,7 +110,7 @@ export function InAppNotificationBanner(): React.JSX.Element | null {
             bottom: -10,
             borderRadius: 20,
             borderWidth: 2,
-            borderColor: '#D4AF37',
+            borderColor: '#E30613',
             opacity: beat.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.6] }),
             transform: [
               {
@@ -125,18 +125,18 @@ export function InAppNotificationBanner(): React.JSX.Element | null {
         <RNAnimated.View
           style={{
             backgroundColor: '#15151B',
-            borderColor: '#D4AF37',
+            borderColor: '#E30613',
             borderWidth: 1,
             borderRadius: 14,
             padding: 14,
-            shadowColor: '#D4AF37',
+            shadowColor: '#E30613',
             shadowOffset: { width: 0, height: 0 },
             shadowOpacity: beat.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.75] }),
             shadowRadius: beat.interpolate({ inputRange: [0, 1], outputRange: [8, 22] }),
             elevation: 10,
           }}
         >
-          <Text style={{ color: '#D4AF37', fontWeight: '700', fontSize: 14 }}>{banner.title}</Text>
+          <Text style={{ color: '#E30613', fontWeight: '700', fontSize: 14 }}>{banner.title}</Text>
           <Text style={{ color: '#E5E5EC', fontSize: 13, marginTop: 4 }}>{banner.body}</Text>
           <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
             <View style={{ position: 'relative' }}>
@@ -151,7 +151,7 @@ export function InAppNotificationBanner(): React.JSX.Element | null {
                   bottom: -4,
                   borderRadius: 12,
                   borderWidth: 1.5,
-                  borderColor: '#D4AF37',
+                  borderColor: '#E30613',
                   opacity: shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.7] }),
                   transform: [
                     {
@@ -166,7 +166,7 @@ export function InAppNotificationBanner(): React.JSX.Element | null {
               <RNAnimated.View
                 style={{
                   borderRadius: 8,
-                  shadowColor: '#D4AF37',
+                  shadowColor: '#E30613',
                   shadowOffset: { width: 0, height: 0 },
                   shadowOpacity: shimmer.interpolate({ inputRange: [0, 1], outputRange: [0.35, 0.9] }),
                   shadowRadius: shimmer.interpolate({ inputRange: [0, 1], outputRange: [6, 16] }),
@@ -176,7 +176,7 @@ export function InAppNotificationBanner(): React.JSX.Element | null {
                 <Pressable
                   onPress={open}
                   style={{
-                    backgroundColor: '#D4AF37',
+                    backgroundColor: '#E30613',
                     paddingVertical: 8,
                     paddingHorizontal: 14,
                     borderRadius: 8,

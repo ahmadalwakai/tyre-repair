@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Switch } from 'react-native';
+import { View, Text, Switch, Pressable } from 'react-native';
 import { GoldCard } from '@/components/ui/GoldCard';
 import { useNotifications } from '@/context/NotificationProvider';
 import { NotificationPermissionCard } from './NotificationPermissionCard';
@@ -28,10 +28,22 @@ export function NotificationPreferences(): React.JSX.Element {
         ) : null}
         {PREF_LABELS.map((p) => {
           const disabled = loadingPreferences || (p.key !== 'pushEnabled' && !preferences.pushEnabled);
+          const value = preferences[p.key];
+          const toggle = (): void => {
+            if (disabled) return;
+            void updatePreference(p.key, !value);
+          };
           return (
-            <View
+            <Pressable
               key={p.key}
+              onPress={toggle}
+              disabled={disabled}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: value, disabled }}
+              accessibilityLabel={p.label}
+              android_ripple={{ color: 'rgba(212,175,55,0.10)' }}
               className="flex-row items-center justify-between py-2 border-b border-border"
+              style={{ opacity: disabled ? 0.55 : 1 }}
             >
               <View style={{ flex: 1, paddingRight: 12 }}>
                 <Text className="text-text">{p.label}</Text>
@@ -39,12 +51,12 @@ export function NotificationPreferences(): React.JSX.Element {
               </View>
               <Switch
                 disabled={disabled}
-                value={preferences[p.key]}
+                value={value}
                 onValueChange={(v) => void updatePreference(p.key, v)}
-                trackColor={{ false: '#2A2A33', true: '#A8851D' }}
-                thumbColor={preferences[p.key] ? '#D4AF37' : '#6B6B75'}
+                trackColor={{ false: '#2A2A33', true: '#8F0010' }}
+                thumbColor={value ? '#E30613' : '#6B6B75'}
               />
-            </View>
+            </Pressable>
           );
         })}
       </GoldCard>

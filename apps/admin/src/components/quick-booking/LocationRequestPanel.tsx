@@ -1,20 +1,28 @@
 /**
  * LocationRequestPanel — Step 1 of Quick Booking.
  *
- * Lets the admin send the customer a secure location-capture link by SMS,
- * email, or WhatsApp (external wa.me URL only). Never blocks booking on
- * failure; surfaces clear inline state and disables channels whose required
- * contact is missing.
+ * Generates a secure, short-lived location-capture link and lets the admin
+ * deliver it to the customer by:
+ *   • Share / copy (native share sheet — no contact details required)
+ *   • SMS
+ *   • Email
+ *   • WhatsApp (wa.me deep link)
  *
- * Backend: POST /api/admin/quick-booking/request-location.
+ * Once a link has been generated, the panel polls the server every few
+ * seconds for the customer's response. When the customer taps the link and
+ * shares their GPS, the captured coordinates are pushed to the wizard via
+ * onLocationReceived and Step 1 auto-fills.
  */
 import * as React from 'react';
-import { Linking, Pressable, Text, View } from 'react-native';
+import { Animated, Easing, Linking, Pressable, Text, View } from 'react-native';
 import { GoldCard } from '@/components/ui/GoldCard';
 import { useToast } from '@/components/ui/Toast';
+import { copyToClipboard } from '@/lib/clipboard';
 import {
+  fetchQuickBookingLocationStatus,
   requestQuickBookingLocation,
   type LocationRequestChannel,
+  type LocationStatusResponse,
   type RequestLocationResponse,
 } from '@/lib/api/quick-booking-helpers';
 
@@ -25,6 +33,15 @@ interface Props {
   customerEmail: string;
   /** Optional name for personalisation in the email greeting. */
   customerName?: string;
+  /**
+   * Fired once the customer has tapped the secure link and shared their
+   * GPS. The wizard uses this to auto-fill Step 1.
+   */
+  onLocationReceived?: (loc: {
+    latitude: number;
+    longitude: number;
+    accuracyMeters: number | null;
+  }) => void;
 }
 
 type ChannelStatus =
@@ -32,27 +49,92 @@ type ChannelStatus =
   | { kind: 'sending' }
   | { kind: 'sent'; expiresInMinutes: number }
   | { kind: 'opened' }
+  | { kind: 'copied'; expiresInMinutes: number }
   | { kind: 'error'; message: string };
 
+type WaitingState =
+  | { kind: 'idle' }
+  | { kind: 'waiting'; token: string; startedAt: number }
+  | { kind: 'received'; at: number }
+  | { kind: 'expired' };
+
 const RESEND_DEBOUNCE_MS = 4000;
+const POLL_INTERVAL_MS = 3000;
+const POLL_MAX_DURATION_MS = 30 * 60 * 1000;
 
 export function LocationRequestPanel({
   customerPhone,
   customerEmail,
   customerName,
+  onLocationReceived,
 }: Props): React.JSX.Element {
   const toast = useToast();
   const [smsStatus, setSmsStatus] = React.useState<ChannelStatus>({ kind: 'idle' });
   const [emailStatus, setEmailStatus] = React.useState<ChannelStatus>({ kind: 'idle' });
   const [whatsappStatus, setWhatsappStatus] = React.useState<ChannelStatus>({ kind: 'idle' });
+  const [copyStatus, setCopyStatus] = React.useState<ChannelStatus>({ kind: 'idle' });
+  const [waiting, setWaiting] = React.useState<WaitingState>({ kind: 'idle' });
   const lastTapRef = React.useRef<Record<LocationRequestChannel, number>>({
     SMS: 0,
     EMAIL: 0,
     WHATSAPP_LINK: 0,
+    COPY_LINK: 0,
   });
+  const receivedRef = React.useRef(false);
 
   const phoneOk = customerPhone.trim().length >= 7;
   const emailOk = /.+@.+\..+/.test(customerEmail.trim());
+
+  const beginWaiting = React.useCallback((token: string) => {
+    receivedRef.current = false;
+    setWaiting({ kind: 'waiting', token, startedAt: Date.now() });
+  }, []);
+
+  // Poll for the customer's response while waiting.
+  React.useEffect(() => {
+    if (waiting.kind !== 'waiting') return;
+    let cancelled = false;
+    const token = waiting.token;
+    const startedAt = waiting.startedAt;
+
+    const tick = async (): Promise<void> => {
+      if (cancelled) return;
+      if (Date.now() - startedAt > POLL_MAX_DURATION_MS) {
+        setWaiting({ kind: 'expired' });
+        return;
+      }
+      try {
+        const res: LocationStatusResponse = await fetchQuickBookingLocationStatus(token);
+        if (cancelled) return;
+        if (res.status === 'received' && typeof res.latitude === 'number' && typeof res.longitude === 'number') {
+          if (!receivedRef.current) {
+            receivedRef.current = true;
+            onLocationReceived?.({
+              latitude: res.latitude,
+              longitude: res.longitude,
+              accuracyMeters: res.accuracyMeters ?? null,
+            });
+            toast.show('Customer shared their location', 'success');
+          }
+          setWaiting({ kind: 'received', at: Date.now() });
+          return;
+        }
+        if (res.status === 'expired' || res.status === 'invalid') {
+          setWaiting({ kind: 'expired' });
+          return;
+        }
+      } catch {
+        // Swallow — try again on next tick.
+      }
+    };
+
+    void tick();
+    const id = setInterval(() => void tick(), POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [waiting, onLocationReceived, toast]);
 
   const sendChannel = React.useCallback(
     async (channel: LocationRequestChannel) => {
@@ -65,7 +147,9 @@ export function LocationRequestPanel({
           ? setSmsStatus
           : channel === 'EMAIL'
             ? setEmailStatus
-            : setWhatsappStatus;
+            : channel === 'WHATSAPP_LINK'
+              ? setWhatsappStatus
+              : setCopyStatus;
       setStatus({ kind: 'sending' });
 
       try {
@@ -76,6 +160,24 @@ export function LocationRequestPanel({
 
         const res: RequestLocationResponse = await requestQuickBookingLocation(payload);
 
+        if (channel === 'COPY_LINK') {
+          if (res.externalUrl) {
+            const ok = await copyToClipboard(res.externalUrl);
+            if (ok) {
+              setStatus({ kind: 'copied', expiresInMinutes: res.expiresInMinutes });
+              toast.success('Location link copied');
+              beginWaiting(res.token);
+            } else {
+              setStatus({ kind: 'error', message: 'Copy failed' });
+              toast.error('Copy failed');
+            }
+            return;
+          }
+          setStatus({ kind: 'error', message: 'Could not generate link' });
+          toast.show('Could not generate link', 'error');
+          return;
+        }
+
         if (channel === 'WHATSAPP_LINK') {
           if (res.externalUrl) {
             const opened = await Linking.canOpenURL(res.externalUrl);
@@ -83,6 +185,7 @@ export function LocationRequestPanel({
               await Linking.openURL(res.externalUrl);
               setStatus({ kind: 'opened' });
               toast.show('Opened WhatsApp', 'success');
+              beginWaiting(res.token);
               return;
             }
           }
@@ -97,6 +200,7 @@ export function LocationRequestPanel({
             channel === 'SMS' ? 'Location link sent by SMS' : 'Location link sent by email',
             'success',
           );
+          beginWaiting(res.token);
           return;
         }
 
@@ -119,7 +223,7 @@ export function LocationRequestPanel({
         toast.show(message, 'error');
       }
     },
-    [customerPhone, customerEmail, customerName, toast],
+    [customerPhone, customerEmail, customerName, toast, beginWaiting],
   );
 
   return (
@@ -133,7 +237,17 @@ export function LocationRequestPanel({
         Booking is not blocked if sending fails.
       </Text>
 
+      <WaitingBanner state={waiting} />
+
       <View className="gap-2">
+        <ChannelRow
+          icon="🔗"
+          label="Copy link"
+          disabled={false}
+          disabledReason=""
+          status={copyStatus}
+          onPress={() => void sendChannel('COPY_LINK')}
+        />
         <ChannelRow
           icon="💬"
           label="Send by SMS"
@@ -163,6 +277,101 @@ export function LocationRequestPanel({
   );
 }
 
+/* ------------------------------ Waiting banner ------------------------------ */
+
+function WaitingBanner({ state }: { state: WaitingState }): React.JSX.Element | null {
+  const pulse = React.useRef(new Animated.Value(0)).current;
+  const isWaiting = state.kind === 'waiting';
+
+  React.useEffect(() => {
+    if (!isWaiting) {
+      pulse.setValue(0);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 900,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 0,
+          duration: 900,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [isWaiting, pulse]);
+
+  if (state.kind === 'idle') return null;
+
+  if (state.kind === 'received') {
+    return (
+      <View className="mb-2 rounded-md border border-success/40 bg-success/10 px-3 py-2 flex-row items-center">
+        <Text className="text-base mr-2">✅</Text>
+        <Text className="text-success text-xs flex-1">
+          Customer shared their location — Step 1 auto-filled.
+        </Text>
+      </View>
+    );
+  }
+
+  if (state.kind === 'expired') {
+    return (
+      <View className="mb-2 rounded-md border border-border bg-surfaceMuted px-3 py-2 flex-row items-center">
+        <Text className="text-base mr-2">⌛</Text>
+        <Text className="text-text-muted text-xs flex-1">
+          Link expired before the customer responded. Generate a new one if needed.
+        </Text>
+      </View>
+    );
+  }
+
+  const dotScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.8] });
+  const dotOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.9, 0.3] });
+  const ringOpacity = pulse.interpolate({ inputRange: [0, 1], outputRange: [0.45, 0] });
+  const ringScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 2.4] });
+
+  return (
+    <View className="mb-2 rounded-md border border-gold/40 bg-gold/5 px-3 py-2 flex-row items-center">
+      <View style={{ width: 18, height: 18, justifyContent: 'center', alignItems: 'center', marginRight: 10 }}>
+        <Animated.View
+          style={{
+            position: 'absolute',
+            width: 14,
+            height: 14,
+            borderRadius: 7,
+            borderWidth: 2,
+            borderColor: '#E30613',
+            opacity: ringOpacity,
+            transform: [{ scale: ringScale }],
+          }}
+        />
+        <Animated.View
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: 4,
+            backgroundColor: '#E30613',
+            opacity: dotOpacity,
+            transform: [{ scale: dotScale }],
+          }}
+        />
+      </View>
+      <Text className="text-gold text-xs flex-1">
+        Waiting for the customer to share their location…
+      </Text>
+    </View>
+  );
+}
+
+/* ------------------------------- Channel row ------------------------------- */
+
 function ChannelRow(props: {
   icon: string;
   label: string;
@@ -183,12 +392,14 @@ function ChannelRow(props: {
         ? `Link sent · valid ${status.expiresInMinutes} min · tap to resend`
         : status.kind === 'opened'
           ? 'Opened WhatsApp · tap to send again'
-          : status.kind === 'error'
-            ? `${status.message} · tap to retry`
-            : 'Tap to send a secure link';
+          : status.kind === 'copied'
+            ? `Shared · valid ${status.expiresInMinutes} min · tap to share again`
+            : status.kind === 'error'
+              ? `${status.message} · tap to retry`
+              : 'Tap to send a secure link';
 
   const sublineColour =
-    status.kind === 'sent' || status.kind === 'opened'
+    status.kind === 'sent' || status.kind === 'opened' || status.kind === 'copied'
       ? 'text-success'
       : status.kind === 'error'
         ? 'text-danger'
@@ -209,7 +420,7 @@ function ChannelRow(props: {
         <Text className="text-text text-sm font-semibold">{props.label}</Text>
         <Text className={`text-[11px] mt-0.5 ${sublineColour}`}>{subline}</Text>
       </View>
-      {status.kind === 'sent' || status.kind === 'opened' ? (
+      {status.kind === 'sent' || status.kind === 'opened' || status.kind === 'copied' ? (
         <Text className="text-success text-xs font-bold">✓</Text>
       ) : status.kind === 'error' ? (
         <Text className="text-danger text-xs font-bold">!</Text>

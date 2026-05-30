@@ -1,4 +1,5 @@
 import React from 'react';
+import { View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { QuickBookingWizard } from '@/components/quick-booking/QuickBookingWizard';
 
@@ -67,5 +68,9 @@ export default function QuickBookingScreen(): React.JSX.Element {
     prefill.vehicleRegistration = params.vehicleRegistration;
   }
 
-  return <QuickBookingWizard prefill={prefill} />;
+  return (
+    <View style={{ flex: 1 }}>
+      <QuickBookingWizard prefill={prefill} />
+    </View>
+  );
 }

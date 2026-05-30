@@ -35,7 +35,7 @@ import { Platform } from 'react-native';
  */
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const fallback = require('../../../assets/sounds/admin-alert.mp3') as number;
+const fallback = require('../../../assets/sounds/admin_alert.mp3') as number;
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const loginOk = require('../../../assets/sounds/login-success.mp3') as number;
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -135,6 +135,11 @@ const IS_WEB = Platform.OS === 'web' && typeof document !== 'undefined';
 const webAudioByKey: Map<SoundKey, HTMLAudioElement> = new Map();
 let webAudioUnlocked = !IS_WEB;
 const pendingLoopKeys = new Set<SoundKey>();
+const pendingOneShotKeys = new Set<SoundKey>();
+
+export function isWebAudioUnlocked(): boolean {
+  return webAudioUnlocked;
+}
 
 function resolveAssetUri(asset: number): string | null {
   try {
@@ -157,44 +162,51 @@ function ensureWebAudio(key: SoundKey): HTMLAudioElement | null {
   return el;
 }
 
-if (IS_WEB) {
-  const unlock = (): void => {
-    if (webAudioUnlocked) return;
-    webAudioUnlocked = true;
-    document.removeEventListener('pointerdown', unlock, true);
-    document.removeEventListener('keydown', unlock, true);
-    document.removeEventListener('touchstart', unlock, true);
-    // Prime every known sound element inside the gesture so the browser
-    // marks them as user-activated for future programmatic play() calls.
-    for (const key of Object.keys(REGISTRY) as SoundKey[]) {
-      const el = ensureWebAudio(key);
-      if (!el) continue;
-      const audioEl = el;
-      audioEl.muted = true;
-      const p = audioEl.play();
-      if (p && typeof p.then === 'function') {
-        p.then(() => {
-          audioEl.pause();
-          audioEl.currentTime = 0;
-          audioEl.muted = false;
-        }).catch(() => {
-          audioEl.muted = false;
-        });
-      } else {
-        try { audioEl.pause(); } catch { /* ignore */ }
+function unlockFromGesture(): void {
+  if (!IS_WEB) return;
+  if (webAudioUnlocked) return;
+  webAudioUnlocked = true;
+  document.removeEventListener('pointerdown', unlockFromGesture, true);
+  document.removeEventListener('keydown', unlockFromGesture, true);
+  document.removeEventListener('touchstart', unlockFromGesture, true);
+  // Prime every known sound element inside the gesture so the browser
+  // marks them as user-activated for future programmatic play() calls.
+  for (const key of Object.keys(REGISTRY) as SoundKey[]) {
+    const el = ensureWebAudio(key);
+    if (!el) continue;
+    const audioEl = el;
+    audioEl.muted = true;
+    const p = audioEl.play();
+    if (p && typeof p.then === 'function') {
+      p.then(() => {
+        audioEl.pause();
+        audioEl.currentTime = 0;
         audioEl.muted = false;
-      }
+      }).catch(() => {
+        audioEl.muted = false;
+      });
+    } else {
+      try { audioEl.pause(); } catch { /* ignore */ }
+      audioEl.muted = false;
     }
-    // Replay any loops that were requested before the unlock.
-    const queued = Array.from(pendingLoopKeys);
-    pendingLoopKeys.clear();
-    for (const k of queued) {
-      void playSoundLoop(k);
-    }
-  };
-  document.addEventListener('pointerdown', unlock, true);
-  document.addEventListener('keydown', unlock, true);
-  document.addEventListener('touchstart', unlock, true);
+  }
+  // Replay any loops / one-shots that were requested before the unlock.
+  const queuedLoops = Array.from(pendingLoopKeys);
+  pendingLoopKeys.clear();
+  for (const k of queuedLoops) {
+    void playSoundLoop(k);
+  }
+  const queuedShots = Array.from(pendingOneShotKeys);
+  pendingOneShotKeys.clear();
+  for (const k of queuedShots) {
+    void playSound(k);
+  }
+}
+
+if (IS_WEB) {
+  document.addEventListener('pointerdown', unlockFromGesture, true);
+  document.addEventListener('keydown', unlockFromGesture, true);
+  document.addEventListener('touchstart', unlockFromGesture, true);
 }
 
 async function configureAudioModeOnce(): Promise<void> {
@@ -246,9 +258,15 @@ export async function playSound(
   if (!uiFeedbackEnabled) return;
   if (Platform.OS !== 'android' && Platform.OS !== 'ios' && Platform.OS !== 'web') return;
   if (IS_WEB) {
-    if (!webAudioUnlocked) return; // can't play before first gesture
+    if (!webAudioUnlocked) {
+      pendingOneShotKeys.add(key);
+      return;
+    }
     const el = ensureWebAudio(key);
-    if (!el) return;
+    if (!el) {
+      console.warn('[play-sound] no web audio element for', key);
+      return;
+    }
     try {
       el.loop = false;
       if (options.volume !== undefined) {
@@ -256,9 +274,21 @@ export async function playSound(
       }
       el.currentTime = 0;
       const p = el.play();
-      if (p && typeof p.catch === 'function') p.catch(() => { /* ignore */ });
-    } catch {
-      // ignore
+      if (p && typeof p.catch === 'function') {
+        p.catch((err: unknown) => {
+          console.warn('[play-sound] web play() rejected for', key, err);
+          // Re-arm: next user gesture will drain the pending queue.
+          if ((err as { name?: string } | null)?.name === 'NotAllowedError') {
+            webAudioUnlocked = false;
+            pendingOneShotKeys.add(key);
+            document.addEventListener('pointerdown', unlockFromGesture, true);
+            document.addEventListener('keydown', unlockFromGesture, true);
+            document.addEventListener('touchstart', unlockFromGesture, true);
+          }
+        });
+      }
+    } catch (err) {
+      console.warn('[play-sound] web play threw for', key, err);
     }
     return;
   }
@@ -294,14 +324,28 @@ export async function playSoundLoop(key: SoundKey): Promise<void> {
       return;
     }
     const el = ensureWebAudio(key);
-    if (!el) return;
+    if (!el) {
+      console.warn('[play-sound] no web audio element for loop', key);
+      return;
+    }
     try {
       el.loop = true;
       el.currentTime = 0;
       const p = el.play();
-      if (p && typeof p.catch === 'function') p.catch(() => { /* ignore */ });
-    } catch {
-      // ignore
+      if (p && typeof p.catch === 'function') {
+        p.catch((err: unknown) => {
+          console.warn('[play-sound] web loop play() rejected for', key, err);
+          if ((err as { name?: string } | null)?.name === 'NotAllowedError') {
+            webAudioUnlocked = false;
+            pendingLoopKeys.add(key);
+            document.addEventListener('pointerdown', unlockFromGesture, true);
+            document.addEventListener('keydown', unlockFromGesture, true);
+            document.addEventListener('touchstart', unlockFromGesture, true);
+          }
+        });
+      }
+    } catch (err) {
+      console.warn('[play-sound] web loop play threw for', key, err);
     }
     return;
   }

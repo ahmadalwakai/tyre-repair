@@ -11,6 +11,7 @@ import {
   Wrap,
   Button,
 } from '@chakra-ui/react';
+import Image from 'next/image';
 import { useState } from 'react';
 import { FiClock, FiHelpCircle, FiMapPin, FiTool, FiTruck } from 'react-icons/fi';
 import { FaWhatsapp } from 'react-icons/fa';
@@ -18,6 +19,7 @@ import { siteConfig } from '@/lib/site-config';
 import { GoldBadge } from '@/components/ui/GoldBadge';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { HeroRepairVisual } from '@/components/landing/HeroRepairVisual';
+import { HeroQuickQuoteForm } from '@/components/landing/HeroQuickQuoteForm';
 import { WhatsAppQuickHelpSheet } from '@/components/mobile/WhatsAppQuickHelpSheet';
 import { defaultEmergencyHref } from '@/lib/contact/whatsapp-options';
 
@@ -34,11 +36,41 @@ export function HeroSection() {
 
   return (
     <Box as="section" position="relative" overflow="hidden" bg="bg.canvas">
+      {/* Dark photo background — LCP-priority, alt is decorative */}
+      <Box
+        aria-hidden
+        position="absolute"
+        inset="0"
+        zIndex="0"
+        opacity={0.28}
+        pointerEvents="none"
+        css={{ '& img': { objectFit: 'cover', objectPosition: 'center' } }}
+      >
+        <Image
+          src="/images/sections/hero-tyre-dark.jpg"
+          alt=""
+          fill
+          sizes="100vw"
+          quality={75}
+          priority
+          fetchPriority="high"
+        />
+      </Box>
+      {/* Dark legibility overlay over the photo */}
+      <Box
+        aria-hidden
+        position="absolute"
+        inset="0"
+        zIndex="0"
+        pointerEvents="none"
+        bgGradient="linear(to-b, rgba(10,10,12,0.78), rgba(10,10,12,0.6) 45%, rgba(10,10,12,0.9))"
+      />
       {/* Ambient gold glow */}
       <Box
         aria-hidden
         position="absolute"
         inset="0"
+        zIndex="0"
         bgGradient="radial(closest-side, rgba(255,215,0,0.10), rgba(212,175,55,0.03) 45%, transparent 70%)"
         pointerEvents="none"
       />
@@ -61,6 +93,50 @@ export function HeroSection() {
             <Stack gap={{ base: '4', md: '6' }} textAlign="left" align="flex-start">
               <GoldBadge icon={<FiClock />}>24/7 Emergency Mobile Tyre Help</GoldBadge>
 
+              <style
+                dangerouslySetInnerHTML={{
+                  __html: `
+@keyframes hero-shimmer-sweep {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -100% 0; }
+}
+.hero-shimmer {
+  background-repeat: no-repeat;
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+          color: transparent;
+  animation: hero-shimmer-sweep 3.5s linear infinite;
+  display: inline-block;
+}
+.hero-shimmer-white {
+  background-image: linear-gradient(
+    100deg,
+    #f4f4f5 0%,
+    #f4f4f5 40%,
+    #ffffff 50%,
+    #f4f4f5 60%,
+    #f4f4f5 100%
+  );
+}
+.hero-shimmer-gold {
+  background-image: linear-gradient(
+    100deg,
+    #E30613 0%,
+    #E30613 40%,
+    #FFF4B8 50%,
+    #E30613 60%,
+    #E30613 100%
+  );
+  animation-delay: 0.6s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-shimmer { animation: none; background-position: 0 0; }
+}
+`,
+                }}
+              />
               <Heading
                 as="h1"
                 fontFamily="heading"
@@ -68,11 +144,9 @@ export function HeroSection() {
                 lineHeight="1.05"
                 color="fg.default"
               >
-                Mobile Tyre Fitting
+                <span className="hero-shimmer hero-shimmer-white">Mobile Tyre Fitting</span>
                 <br />
-                <Box as="span" color="accent.neon">
-                  When You Need Help Now
-                </Box>
+                <span className="hero-shimmer hero-shimmer-gold">When You Need Help Now</span>
               </Heading>
 
               <Text color="fg.muted" fontSize={{ base: 'md', md: 'lg' }} maxW="2xl">
@@ -97,14 +171,15 @@ export function HeroSection() {
                   aria-label={siteConfig.whatsappCtaLabel}
                   bg="#25D366"
                   color="white"
-                  borderRadius="lg"
-                  fontWeight="600"
+                  borderRadius="6px"
+                  fontWeight="700"
+                  fontSize={{ base: 'md', md: 'lg' }}
                   minH="52px"
-                  px="6"
-                  _hover={{ bg: '#1DA851', boxShadow: 'glowSoft' }}
+                  px="24px"
+                  _hover={{ bg: '#1DA851' }}
                   _active={{ bg: '#178D44' }}
                 >
-                  <FaWhatsapp aria-hidden style={{ marginRight: '8px' }} />
+                  <FaWhatsapp aria-hidden style={{ marginRight: '8px' }} size={18} />
                   {siteConfig.whatsappCtaLabel}
                 </Button>
                 {/* JS-disabled fallback so the WhatsApp link still works. */}
@@ -113,7 +188,7 @@ export function HeroSection() {
                     href={defaultEmergencyHref()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{ color: '#FFD700' }}
+                    style={{ color: '#E30613' }}
                   >
                     {siteConfig.whatsappCtaLabel}
                   </a>
@@ -127,6 +202,8 @@ export function HeroSection() {
                   </GoldBadge>
                 ))}
               </Wrap>
+
+              <HeroQuickQuoteForm />
             </Stack>
           </GridItem>
 

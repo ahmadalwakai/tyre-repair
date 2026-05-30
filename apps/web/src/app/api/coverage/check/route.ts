@@ -13,7 +13,23 @@ const checkSchema = z.object({
     .transform((v) => v.replace(/\s+/g, '').toUpperCase()),
 });
 
-export type CoverageArea = 'glasgow' | 'edinburgh';
+export type CoverageArea =
+  | 'glasgow'
+  | 'edinburgh'
+  | 'aberdeen'
+  | 'dundee'
+  | 'dumfries_galloway'
+  | 'falkirk_stirling'
+  | 'outer_hebrides'
+  | 'highlands'
+  | 'ayrshire'
+  | 'orkney_caithness'
+  | 'fife'
+  | 'lanarkshire'
+  | 'paisley_renfrewshire'
+  | 'perthshire'
+  | 'borders'
+  | 'shetland';
 
 export interface CoverageCheckResult {
   covered: boolean;
@@ -23,14 +39,46 @@ export interface CoverageCheckResult {
 }
 
 /**
- * Hardcoded service-area gate. Glasgow ('G') and Edinburgh ('EH') only.
- * The leading letters are the UK "area code" portion of a postcode and are
- * unambiguous enough for a binary in-area check. Replace with a live coverage
- * service when one exists.
+ * Service-area gate by UK postcode area code (leading letters).
+ * We cover the whole of Scotland — every Scottish postcode area is accepted.
+ * Distance-based risk (long-distance / outside normal dispatch range) is
+ * handled separately by the pricing engine / profit guard, not here.
+ *
+ * Scottish postcode areas:
+ *   AB Aberdeen, DD Dundee, DG Dumfries & Galloway, EH Edinburgh/Lothians,
+ *   FK Falkirk/Stirling, G Glasgow, HS Outer Hebrides, IV Inverness/Highlands,
+ *   KA Kilmarnock/Ayrshire, KW Kirkwall/Orkney/Caithness, KY Kirkcaldy/Fife,
+ *   ML Motherwell/Lanarkshire (Coatbridge, Hamilton, Wishaw, etc.),
+ *   PA Paisley/Renfrewshire/Argyll, PH Perth/Perthshire,
+ *   TD Borders (Scottish Borders), ZE Shetland.
  */
+const SCOTTISH_POSTCODE_AREAS: Record<string, CoverageArea> = {
+  AB: 'aberdeen',
+  DD: 'dundee',
+  DG: 'dumfries_galloway',
+  EH: 'edinburgh',
+  FK: 'falkirk_stirling',
+  G: 'glasgow',
+  HS: 'outer_hebrides',
+  IV: 'highlands',
+  KA: 'ayrshire',
+  KW: 'orkney_caithness',
+  KY: 'fife',
+  ML: 'lanarkshire',
+  PA: 'paisley_renfrewshire',
+  PH: 'perthshire',
+  TD: 'borders',
+  ZE: 'shetland',
+};
+
 function evaluateCoverage(postcode: string): { covered: boolean; area: CoverageArea | null } {
-  if (/^EH\d/.test(postcode)) return { covered: true, area: 'edinburgh' };
-  if (/^G\d/.test(postcode)) return { covered: true, area: 'glasgow' };
+  // Match the postcode "area" portion: 1–2 letters followed by a digit.
+  // e.g. ML5 -> ML, G31 -> G, EH1 -> EH, AB10 -> AB.
+  const match = postcode.match(/^([A-Z]{1,2})\d/);
+  const prefix = match?.[1];
+  if (!prefix) return { covered: false, area: null };
+  const area = SCOTTISH_POSTCODE_AREAS[prefix];
+  if (area) return { covered: true, area };
   return { covered: false, area: null };
 }
 

@@ -30,7 +30,7 @@ export const dynamic = 'force-dynamic';
 
 const bodySchema = z
   .object({
-    channel: z.enum(['SMS', 'EMAIL', 'WHATSAPP_LINK']),
+    channel: z.enum(['SMS', 'EMAIL', 'WHATSAPP_LINK', 'COPY_LINK']),
     phone: z.string().trim().min(7).max(32).optional(),
     email: z.string().trim().email().max(320).optional(),
     customerName: z.string().trim().max(160).optional(),
@@ -39,6 +39,7 @@ const bodySchema = z
     (v) => {
       if (v.channel === 'EMAIL') return !!v.email;
       if (v.channel === 'SMS' || v.channel === 'WHATSAPP_LINK') return !!v.phone;
+      if (v.channel === 'COPY_LINK') return true;
       return false;
     },
     { message: 'Required contact for selected channel is missing' },
@@ -46,9 +47,11 @@ const bodySchema = z
 
 interface SuccessResponse {
   success: true;
-  channel: 'SMS' | 'EMAIL' | 'WHATSAPP_LINK';
+  channel: 'SMS' | 'EMAIL' | 'WHATSAPP_LINK' | 'COPY_LINK';
   /** URL to open externally (only for WHATSAPP_LINK). */
   externalUrl?: string;
+  /** Secure capture token — returned so the admin app can poll for the customer's response. */
+  token: string;
   /** Whether the server actually sent a message. False for WHATSAPP_LINK. */
   sent: boolean;
   skippedReason?: 'missing_credentials' | 'send_failed' | 'no_phone' | 'no_email';
@@ -110,6 +113,7 @@ export async function POST(req: Request): Promise<NextResponse<SuccessResponse |
         {
           success: true,
           channel: 'SMS',
+          token: created.token,
           sent: false,
           skippedReason: 'no_phone',
           expiresInMinutes: LOCATION_TOKEN_EXPIRY_MINUTES,
@@ -131,6 +135,7 @@ export async function POST(req: Request): Promise<NextResponse<SuccessResponse |
       {
         success: true,
         channel: 'SMS',
+        token: created.token,
         sent: r.sent,
         ...(r.skippedReason ? { skippedReason: r.skippedReason } : {}),
         expiresInMinutes: LOCATION_TOKEN_EXPIRY_MINUTES,
@@ -145,6 +150,7 @@ export async function POST(req: Request): Promise<NextResponse<SuccessResponse |
         {
           success: true,
           channel: 'EMAIL',
+          token: created.token,
           sent: false,
           skippedReason: 'no_email',
           expiresInMinutes: LOCATION_TOKEN_EXPIRY_MINUTES,
@@ -172,8 +178,32 @@ export async function POST(req: Request): Promise<NextResponse<SuccessResponse |
       {
         success: true,
         channel: 'EMAIL',
+        token: created.token,
         sent: r.sent,
         ...(r.skippedReason ? { skippedReason: r.skippedReason } : {}),
+        expiresInMinutes: LOCATION_TOKEN_EXPIRY_MINUTES,
+      },
+      { status: 200 },
+    );
+  }
+
+  if (data.channel === 'COPY_LINK') {
+    await writeAuditLogSafe({
+      actorType: 'admin',
+      action: 'booking.location_request.sent',
+      entityType: 'lead',
+      entityId: data.phone ?? data.email ?? null,
+      actorAdminId: admin.adminId,
+      actorLabel: admin.email,
+      metadata: { source: 'quick_booking_wizard', channel: 'COPY_LINK' },
+    });
+    return NextResponse.json(
+      {
+        success: true,
+        channel: 'COPY_LINK',
+        token: created.token,
+        sent: false,
+        externalUrl: link,
         expiresInMinutes: LOCATION_TOKEN_EXPIRY_MINUTES,
       },
       { status: 200 },
@@ -198,6 +228,7 @@ export async function POST(req: Request): Promise<NextResponse<SuccessResponse |
     {
       success: true,
       channel: 'WHATSAPP_LINK',
+      token: created.token,
       sent: false,
       externalUrl,
       expiresInMinutes: LOCATION_TOKEN_EXPIRY_MINUTES,

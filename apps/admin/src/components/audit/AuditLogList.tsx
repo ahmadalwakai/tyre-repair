@@ -145,7 +145,7 @@ export function AuditLogList(props: AuditLogListProps): React.JSX.Element {
         keyExtractor={(it) => it.id}
         renderItem={({ item }) => <AuditLogRow item={item} />}
         refreshControl={
-          <RefreshControl refreshing={loading && items.length === 0} onRefresh={() => void load(true)} tintColor="#D4AF37" />
+          <RefreshControl refreshing={loading && items.length === 0} onRefresh={() => void load(true)} tintColor="#E30613" />
         }
         ListEmptyComponent={
           loading ? null : (
@@ -160,7 +160,7 @@ export function AuditLogList(props: AuditLogListProps): React.JSX.Element {
               onPress={() => void load(false)}
               className="rounded-xl bg-surfaceMuted py-3 items-center mt-2"
             >
-              {loading ? <ActivityIndicator color="#D4AF37" /> : <Text className="text-text">Load more</Text>}
+              {loading ? <ActivityIndicator color="#E30613" /> : <Text className="text-text">Load more</Text>}
             </Pressable>
           ) : null
         }

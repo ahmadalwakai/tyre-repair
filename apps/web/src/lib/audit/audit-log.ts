@@ -26,6 +26,9 @@ export type AuditEntityType =
   | 'lead'
   | 'cancellation'
   | 'app_settings'
+  | 'coverage_zone'
+  | 'seo_page'
+  | 'tyre_catalog'
   | 'system';
 
 export type AuditAction =
@@ -45,6 +48,7 @@ export type AuditAction =
   | 'booking.assessment.converted'
   | 'booking.payment_link.sent'
   | 'booking.location_request.sent'
+  | 'booking.location_capture.resolved'
   | 'booking.tracking_link.sent'
   | 'booking.note.added'
   | 'booking.attachment.uploaded'
@@ -115,7 +119,15 @@ export type AuditAction =
   | 'settings.promo_banner.updated'
   | 'settings.service_availability.updated'
   | 'stock.fast_fit.updated'
-  | 'admin.quick_booking.created';
+  | 'admin.quick_booking.created'
+  | 'coverage_zone.created'
+  | 'coverage_zone.updated'
+  | 'coverage_zone.deleted'
+  | 'seo_page.updated'
+  | 'seo_page.reset'
+  | 'settings.message_template.updated'
+  | 'settings.tyre_shop_booking.updated'
+  | 'tyre.price.updated.by_admin';
 
 export interface WriteAuditLogInput {
   actorType: AuditActorType;

@@ -78,8 +78,8 @@ export function MobileEmergencyActionBar() {
               borderRadius: '999px',
               minHeight: '44px',
               background: 'rgba(20,20,20,0.92)',
-              color: '#FFD700',
-              border: '1px solid #D4AF37',
+              color: '#E30613',
+              border: '1px solid #E30613',
             }}
           >
             <Text fontSize="sm" fontWeight="semibold">
@@ -158,9 +158,9 @@ function BarButton({ action, onSheet }: BarButtonProps) {
     fontWeight: 600,
     fontSize: '0.9rem',
     textAlign: 'center' as const,
-    background: isPrimary ? '#D4AF37' : 'transparent',
+    background: isPrimary ? '#E30613' : 'transparent',
     color: isPrimary ? '#0A0A0A' : '#F5F5F5',
-    border: isPrimary ? '1px solid #D4AF37' : '1px solid rgba(212,175,55,0.4)',
+    border: isPrimary ? '1px solid #E30613' : '1px solid rgba(212,175,55,0.4)',
     overflow: 'hidden',
     whiteSpace: 'nowrap' as const,
     textOverflow: 'ellipsis',

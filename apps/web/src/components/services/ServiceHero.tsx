@@ -16,7 +16,7 @@ export function ServiceHero({ title, intro, ctaLabel, ctaHref }: ServiceHeroProp
     <Box as="section" bg="bg.canvas" py={{ base: '12', md: '16' }} px={{ base: '4', md: '6' }}>
       <Container maxW="5xl">
         <Stack gap="5" align="flex-start">
-          <GoldBadge icon={<FiClock />}>Mobile across Scotland · Glasgow base</GoldBadge>
+          <GoldBadge icon={<FiClock />}>Scotland-wide mobile cover · 24/7 vans to you</GoldBadge>
           <Heading
             as="h1"
             fontFamily="heading"

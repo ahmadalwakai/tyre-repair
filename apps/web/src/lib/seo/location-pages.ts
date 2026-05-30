@@ -240,7 +240,7 @@ const REGION_TEMPLATES: Record<string, RegionTemplate> = {
     roads: ['A964', 'A965', 'A961'],
     representativeNearby: ['Kirkwall', 'Stromness', 'St Margaret’s Hope'],
     contextLine:
-      'Orkney roads are exposed to weather and have long stretches between towns. Mobile tyre help is dispatched from the Glasgow base and travel time to the islands is much longer than the central belt — we will be honest about timings before you commit.',
+      'Orkney roads are exposed to weather and have long stretches between towns. Mobile tyre help is part of our Scotland-wide cover — travel time to the islands is longer than the central belt, and we will be honest about timings before you commit.',
     callouts: [
       'flat tyre on an island road',
       'puncture in a small town',
@@ -253,7 +253,7 @@ const REGION_TEMPLATES: Record<string, RegionTemplate> = {
     roads: ['A970', 'A971', 'A968'],
     representativeNearby: ['Lerwick', 'Scalloway', 'Brae'],
     contextLine:
-      'Shetland is one of the longer-reach areas for mobile tyre cover. We are honest about timings — work is dispatched from the Glasgow base and island routes add real travel time.',
+      'Shetland is one of the longer-reach areas for mobile tyre cover. We are honest about timings — Shetland is part of our Scotland-wide cover but island routes add real travel time.',
     callouts: [
       'flat tyre on a Shetland road',
       'puncture in Lerwick',
@@ -533,10 +533,10 @@ const PRIORITY_ONE: readonly LocationPage[] = [
     region: 'Edinburgh & Lothians',
     metaTitle: 'Mobile Tyre Fitting Edinburgh | Out-of-Hours Tyre Help',
     metaDescription:
-      'Mobile tyre fitting in Edinburgh at home, work or roadside. Glasgow-based service with full Lothians cover, day and night.',
+      'Mobile tyre fitting in Edinburgh at home, work or roadside. Full Lothians cover, day and night.',
     heroTitle: 'Mobile tyre fitting in Edinburgh',
     heroIntro:
-      'We cover Edinburgh and the Lothians from the Glasgow base — the M8 corridor lets us reach the capital with realistic travel times. The service is built for kerb damage on the city’s cobbled streets, motorway debris on the bypass, and out-of-hours call outs that local garages cannot cover.',
+      'We cover Edinburgh and the Lothians as part of our Scotland-wide mobile fleet — the M8 corridor gives realistic travel times to the capital. The service is built for kerb damage on the city’s cobbled streets, motorway debris on the bypass, and out-of-hours call outs that local garages cannot cover.',
     primaryKeywords: [
       'mobile tyre fitting Edinburgh',
       'tyre fitter tonight Edinburgh',
@@ -577,7 +577,7 @@ const PRIORITY_ONE: readonly LocationPage[] = [
     ],
     faq: [
       {
-        question: 'Do you actually cover Edinburgh from Glasgow?',
+        question: 'Do you actually cover Edinburgh?',
         answer:
           'Yes — the M8 corridor is a regular run for us. Travel times are honest: longer than a Glasgow call out, but we will quote and confirm before you commit.',
       },
@@ -867,6 +867,9 @@ const EXTRA_TOWNS: readonly CityEntry[] = [
   { slug: 'symington-south-lan', city: 'Symington', template: 'lanarkshire' },
   { slug: 'blackwood', city: 'Blackwood', template: 'lanarkshire' },
   { slug: 'kirkmuirhill', city: 'Kirkmuirhill', template: 'lanarkshire' },
+  { slug: 'blantyre', city: 'Blantyre', template: 'lanarkshire' },
+  { slug: 'uddingston', city: 'Uddingston', template: 'lanarkshire' },
+  { slug: 'bothwell', city: 'Bothwell', template: 'lanarkshire' },
 
   // East Ayrshire
   { slug: 'cumnock', city: 'Cumnock', template: 'eastAyrshire' },
@@ -1227,6 +1230,133 @@ const EXTRA_TOWNS: readonly CityEntry[] = [
   { slug: 'lochmaddy', city: 'Lochmaddy', template: 'westernIsles' },
   { slug: 'castlebay', city: 'Castlebay', template: 'westernIsles' },
   { slug: 'benbecula', city: 'Benbecula', template: 'westernIsles' },
+
+  // Additional coverage — Aberdeenshire & Moray villages
+  { slug: 'huntly', city: 'Huntly', template: 'aberdeen' },
+  { slug: 'turriff', city: 'Turriff', template: 'aberdeen' },
+  { slug: 'banchory', city: 'Banchory', template: 'aberdeen' },
+  { slug: 'aboyne', city: 'Aboyne', template: 'aberdeen' },
+  { slug: 'ballater', city: 'Ballater', template: 'aberdeen' },
+  { slug: 'braemar', city: 'Braemar', template: 'aberdeen' },
+  { slug: 'alford', city: 'Alford', template: 'aberdeen' },
+  { slug: 'kemnay', city: 'Kemnay', template: 'aberdeen' },
+  { slug: 'kintore', city: 'Kintore', template: 'aberdeen' },
+  { slug: 'oldmeldrum', city: 'Oldmeldrum', template: 'aberdeen' },
+  { slug: 'mintlaw', city: 'Mintlaw', template: 'aberdeen' },
+  { slug: 'macduff', city: 'Macduff', template: 'aberdeen' },
+  { slug: 'gardenstown', city: 'Gardenstown', template: 'aberdeen' },
+  { slug: 'rosehearty', city: 'Rosehearty', template: 'aberdeen' },
+  { slug: 'cullen', city: 'Cullen', template: 'moray' },
+  { slug: 'aberlour', city: 'Aberlour', template: 'moray' },
+  { slug: 'rothes', city: 'Rothes', template: 'moray' },
+  { slug: 'dufftown', city: 'Dufftown', template: 'moray' },
+  { slug: 'keith', city: 'Keith', template: 'moray' },
+  { slug: 'fochabers', city: 'Fochabers', template: 'moray' },
+  { slug: 'burghead', city: 'Burghead', template: 'moray' },
+  { slug: 'hopeman', city: 'Hopeman', template: 'moray' },
+  { slug: 'findhorn', city: 'Findhorn', template: 'moray' },
+
+  // Additional coverage — Highlands villages
+  { slug: 'aviemore', city: 'Aviemore', template: 'highlands' },
+  { slug: 'kingussie', city: 'Kingussie', template: 'highlands' },
+  { slug: 'newtonmore', city: 'Newtonmore', template: 'highlands' },
+  { slug: 'grantown-on-spey', city: 'Grantown-on-Spey', template: 'highlands' },
+  { slug: 'nairn', city: 'Nairn', template: 'highlands' },
+  { slug: 'dingwall', city: 'Dingwall', template: 'highlands' },
+  { slug: 'alness', city: 'Alness', template: 'highlands' },
+  { slug: 'invergordon', city: 'Invergordon', template: 'highlands' },
+  { slug: 'tain', city: 'Tain', template: 'highlands' },
+  { slug: 'dornoch', city: 'Dornoch', template: 'highlands' },
+  { slug: 'golspie', city: 'Golspie', template: 'highlands' },
+  { slug: 'brora', city: 'Brora', template: 'highlands' },
+  { slug: 'helmsdale', city: 'Helmsdale', template: 'highlands' },
+  { slug: 'wick', city: 'Wick', template: 'highlands' },
+  { slug: 'thurso', city: 'Thurso', template: 'highlands' },
+  { slug: 'john-o-groats', city: 'John o’ Groats', template: 'highlands' },
+  { slug: 'ullapool', city: 'Ullapool', template: 'highlands' },
+  { slug: 'gairloch', city: 'Gairloch', template: 'highlands' },
+  { slug: 'portree', city: 'Portree', template: 'highlands' },
+  { slug: 'kyle-of-lochalsh', city: 'Kyle of Lochalsh', template: 'highlands' },
+  { slug: 'mallaig', city: 'Mallaig', template: 'highlands' },
+  { slug: 'fort-augustus', city: 'Fort Augustus', template: 'highlands' },
+  { slug: 'beauly', city: 'Beauly', template: 'highlands' },
+  { slug: 'muir-of-ord', city: 'Muir of Ord', template: 'highlands' },
+  { slug: 'cromarty', city: 'Cromarty', template: 'highlands' },
+  { slug: 'fortrose', city: 'Fortrose', template: 'highlands' },
+  { slug: 'lairg', city: 'Lairg', template: 'highlands' },
+  { slug: 'bonar-bridge', city: 'Bonar Bridge', template: 'highlands' },
+
+  // Additional coverage — Argyll & Bute
+  { slug: 'dunoon', city: 'Dunoon', template: 'argyllBute' },
+  { slug: 'lochgilphead', city: 'Lochgilphead', template: 'argyllBute' },
+  { slug: 'inveraray', city: 'Inveraray', template: 'argyllBute' },
+  { slug: 'campbeltown', city: 'Campbeltown', template: 'argyllBute' },
+  { slug: 'tarbert-argyll', city: 'Tarbert (Argyll)', template: 'argyllBute' },
+  { slug: 'tobermory', city: 'Tobermory', template: 'argyllBute' },
+  { slug: 'bowmore', city: 'Bowmore', template: 'argyllBute' },
+  { slug: 'port-ellen', city: 'Port Ellen', template: 'argyllBute' },
+  { slug: 'rothesay', city: 'Rothesay', template: 'argyllBute' },
+  { slug: 'cardross', city: 'Cardross', template: 'argyllBute' },
+  { slug: 'arrochar', city: 'Arrochar', template: 'argyllBute' },
+  { slug: 'tarbet-loch-lomond', city: 'Tarbet (Loch Lomond)', template: 'argyllBute' },
+
+  // Additional coverage — Perth & Kinross
+  { slug: 'perth', city: 'Perth', template: 'perthKinross' },
+  { slug: 'pitlochry', city: 'Pitlochry', template: 'perthKinross' },
+  { slug: 'aberfeldy', city: 'Aberfeldy', template: 'perthKinross' },
+  { slug: 'crieff', city: 'Crieff', template: 'perthKinross' },
+  { slug: 'auchterarder', city: 'Auchterarder', template: 'perthKinross' },
+  { slug: 'kinross', city: 'Kinross', template: 'perthKinross' },
+  { slug: 'milnathort', city: 'Milnathort', template: 'perthKinross' },
+  { slug: 'blairgowrie', city: 'Blairgowrie', template: 'perthKinross' },
+  { slug: 'coupar-angus', city: 'Coupar Angus', template: 'perthKinross' },
+  { slug: 'dunkeld', city: 'Dunkeld', template: 'perthKinross' },
+  { slug: 'birnam', city: 'Birnam', template: 'perthKinross' },
+  { slug: 'methven', city: 'Methven', template: 'perthKinross' },
+  { slug: 'scone', city: 'Scone', template: 'perthKinross' },
+  { slug: 'bridge-of-earn', city: 'Bridge of Earn', template: 'perthKinross' },
+  { slug: 'comrie', city: 'Comrie', template: 'perthKinross' },
+  { slug: 'st-fillans', city: 'St Fillans', template: 'perthKinross' },
+  { slug: 'blair-atholl', city: 'Blair Atholl', template: 'perthKinross' },
+
+  // Additional coverage — Dundee & Angus
+  { slug: 'broughty-ferry', city: 'Broughty Ferry', template: 'dundee' },
+  { slug: 'monifieth', city: 'Monifieth', template: 'dundee' },
+  { slug: 'carnoustie', city: 'Carnoustie', template: 'dundee' },
+  { slug: 'arbroath', city: 'Arbroath', template: 'dundee' },
+  { slug: 'montrose', city: 'Montrose', template: 'dundee' },
+  { slug: 'brechin', city: 'Brechin', template: 'dundee' },
+  { slug: 'forfar', city: 'Forfar', template: 'dundee' },
+  { slug: 'kirriemuir', city: 'Kirriemuir', template: 'dundee' },
+  { slug: 'edzell', city: 'Edzell', template: 'dundee' },
+  { slug: 'friockheim', city: 'Friockheim', template: 'dundee' },
+
+  // Additional coverage — Borders & Dumfries
+  { slug: 'hawick', city: 'Hawick', template: 'borders' },
+  { slug: 'peebles', city: 'Peebles', template: 'borders' },
+  { slug: 'kelso', city: 'Kelso', template: 'borders' },
+  { slug: 'jedburgh', city: 'Jedburgh', template: 'borders' },
+  { slug: 'selkirk', city: 'Selkirk', template: 'borders' },
+  { slug: 'melrose', city: 'Melrose', template: 'borders' },
+  { slug: 'innerleithen', city: 'Innerleithen', template: 'borders' },
+  { slug: 'duns', city: 'Duns', template: 'borders' },
+  { slug: 'coldstream', city: 'Coldstream', template: 'borders' },
+  { slug: 'eyemouth', city: 'Eyemouth', template: 'borders' },
+  { slug: 'newtown-st-boswells', city: 'Newtown St Boswells', template: 'borders' },
+  { slug: 'stranraer', city: 'Stranraer', template: 'dumfries' },
+  { slug: 'castle-douglas', city: 'Castle Douglas', template: 'dumfries' },
+  { slug: 'lockerbie', city: 'Lockerbie', template: 'dumfries' },
+  { slug: 'annan', city: 'Annan', template: 'dumfries' },
+  { slug: 'moffat', city: 'Moffat', template: 'dumfries' },
+  { slug: 'gretna', city: 'Gretna', template: 'dumfries' },
+  { slug: 'kirkcudbright', city: 'Kirkcudbright', template: 'dumfries' },
+  { slug: 'newton-stewart', city: 'Newton Stewart', template: 'dumfries' },
+  { slug: 'sanquhar', city: 'Sanquhar', template: 'dumfries' },
+  { slug: 'thornhill', city: 'Thornhill', template: 'dumfries' },
+  { slug: 'langholm', city: 'Langholm', template: 'dumfries' },
+  { slug: 'dalbeattie', city: 'Dalbeattie', template: 'dumfries' },
+  { slug: 'whithorn', city: 'Whithorn', template: 'dumfries' },
+  { slug: 'wigtown', city: 'Wigtown', template: 'dumfries' },
 ];
 
 function buildLocationPageFromTemplate(
@@ -1238,7 +1368,7 @@ function buildLocationPageFromTemplate(
     {
       heading: `Mobile tyre fitting in ${spec.city}`,
       body: [
-        `We are a Glasgow-based mobile tyre fitter and we cover ${spec.city} in ${t.region}. ${t.contextLine}`,
+        `We are a mobile tyre fitter covering ${spec.city} in ${t.region}. ${t.contextLine}`,
         `For ${spec.city} drivers, the typical call out is a flat at home, a slow puncture caught the next morning, or roadside damage on a regional route.`,
       ],
     },
@@ -1258,8 +1388,8 @@ function buildLocationPageFromTemplate(
 
   const faq: readonly LocationFaqItem[] = [
     {
-      question: `Do you really cover ${spec.city} from Glasgow?`,
-      answer: `Yes — we operate from Glasgow and ${spec.city} is part of our regular cover. Travel times are honest: longer than a Glasgow-only call, but always quoted clearly before you commit.`,
+      question: `Do you really cover ${spec.city}?`,
+      answer: `Yes — ${spec.city} is part of our regular Scotland-wide mobile cover. Travel times are honest and always quoted clearly before you commit.`,
     },
     {
       question: `Can you come out at night in ${spec.city}?`,
@@ -1277,7 +1407,7 @@ function buildLocationPageFromTemplate(
     city: spec.city,
     region: spec.region,
     metaTitle: `Mobile Tyre Fitting ${spec.city} | TyreRepair UK`,
-    metaDescription: `Mobile tyre fitting in ${spec.city}, ${spec.region}. Glasgow-based service covering home, work and roadside call outs across ${spec.region}.`,
+    metaDescription: `Mobile tyre fitting in ${spec.city}, ${spec.region}. Covering home, work and roadside call outs across ${spec.region}.`,
     heroTitle: `Mobile tyre fitting in ${spec.city}`,
     heroIntro: `${spec.city} is part of our regular ${t.region} cover. We come to you — at home, at work or roadside — with the right tyre and the equipment to fit and balance it on the vehicle.`,
     primaryKeywords: spec.primary,
@@ -1300,7 +1430,7 @@ function buildExtraLocationPage(entry: CityEntry): LocationPage {
     {
       heading: `${entry.city} mobile tyre cover`,
       body: [
-        `${entry.city} is in ${t.region}. We are a Glasgow-based mobile tyre fitter and ${entry.city} is part of regular ${t.region} cover.`,
+        `${entry.city} is in ${t.region}. ${entry.city} is part of our regular ${t.region} mobile tyre fitting cover.`,
         t.contextLine,
       ],
     },
@@ -1315,7 +1445,7 @@ function buildExtraLocationPage(entry: CityEntry): LocationPage {
   const faq: readonly LocationFaqItem[] = [
     {
       question: `Is mobile tyre fitting available in ${entry.city}?`,
-      answer: `Yes — ${entry.city} is part of our regular ${t.region} cover, dispatched from the Glasgow base. Travel time is honest and always confirmed before you commit.`,
+      answer: `Yes — ${entry.city} is part of our regular ${t.region} cover, served by our Scotland-wide mobile fleet. Travel time is honest and always confirmed before you commit.`,
     },
     {
       question: `Can you come at night to ${entry.city}?`,
@@ -1329,7 +1459,7 @@ function buildExtraLocationPage(entry: CityEntry): LocationPage {
     city: entry.city,
     region: t.region,
     metaTitle: `Mobile Tyre Fitting ${entry.city} | TyreRepair UK`,
-    metaDescription: `Mobile tyre fitting in ${entry.city}, ${t.region}. Glasgow-based service covering home, work and roadside tyre call outs across ${t.region}.`,
+    metaDescription: `Mobile tyre fitting in ${entry.city}, ${t.region}. Covering home, work and roadside tyre call outs across ${t.region}.`,
     heroTitle: `Mobile tyre fitting in ${entry.city}`,
     heroIntro: `${entry.city} is part of our regular ${t.region} cover. We come to you with the right tyre and the equipment to fit and balance it on the vehicle.`,
     primaryKeywords: [

@@ -30,7 +30,7 @@ export interface PulseIconProps {
 export function PulseIcon({
   state = 'idle',
   size = 56,
-  color = '#FFD700',
+  color = '#E30613',
   ariaLabel,
   children,
 }: PulseIconProps) {

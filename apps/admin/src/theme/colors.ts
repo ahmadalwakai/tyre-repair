@@ -23,11 +23,12 @@ export const colors = {
   textFaint: '#7A7A7A',
   textGhost: '#666666',
 
-  // Brand — gold
-  gold: '#D4AF37',
-  goldBright: '#FFD700',
-  goldSoft: '#FFE57F',
-  goldDeep: '#A8851D',
+  // Brand — emergency red (matches website). Token names kept as `gold*`
+  // for backwards-compat; the underlying values are now red.
+  gold: '#E30613',
+  goldBright: '#F01825',
+  goldSoft: '#FF8A95',
+  goldDeep: '#8F0010',
 
   // Status accents (bright variants tuned for popups on dark surfaces)
   successBright: '#7CFFB2',

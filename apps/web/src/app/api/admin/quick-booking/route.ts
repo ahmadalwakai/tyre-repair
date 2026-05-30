@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { db, schema, eq, generateTrackingId } from '@tyrerepair/db';
 import { adminAuthErrorResponse, requireAdmin } from '@/lib/admin/auth';
 import { writeAuditLogSafe } from '@/lib/audit/audit-log';
+import { getPricingExtras } from '@/lib/pricing/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -26,7 +27,10 @@ const moneySchema = z
 
 const bodySchema = z.object({
   customerName: z.string().trim().max(160).optional(),
-  customerPhone: phoneSchema,
+  // Phone is normally required, but emergency bookings created on the
+  // roadside may have no callable number yet. Empty string / undefined are
+  // both accepted; the route synthesises a placeholder so DB NOT NULL holds.
+  customerPhone: z.union([phoneSchema, z.literal('')]).optional(),
   customerEmail: z.string().trim().email().max(320).optional(),
   problemType: z.enum(PROBLEM_TYPES).default('NOT_SURE'),
   jobType: z.enum(JOB_TYPES).default('ASSESSMENT'),
@@ -44,13 +48,24 @@ const bodySchema = z.object({
   paymentMode: z.enum(PAYMENT_MODES).default('CASH'),
   /** Snapshot of the live price quote total (£). Required for DEPOSIT/FULL. */
   totalPriceGbp: moneySchema.optional(),
+  /** Engine-suggested price before any admin manual edit. */
+  engineTotalPriceGbp: moneySchema.optional(),
+  /** True when the admin manually edited the price away from the engine value. */
+  priceOverridden: z.boolean().optional(),
+  /** Distance to job in miles, captured from the live quote. Used to bucket
+   *  the learning sample so future quotes adjust per distance band. */
+  distanceMiles: z.number().min(0).max(1000).optional(),
+  /** Tyre id (REPLACEMENT only) — included in the override record. */
+  tyreId: z.string().uuid().optional(),
 });
 
 /** Default 15% deposit, mirroring the public flow's createPendingBookingForQuote. */
 const DEPOSIT_PERCENTAGE = 0.15;
-const MINIMUM_DEPOSIT_GBP = 10;
 
-function calculateDepositAmounts(totalGbp: string): {
+function calculateDepositAmounts(
+  totalGbp: string,
+  minimumDepositGbp: number,
+): {
   depositAmountGbp: string;
   balanceDueGbp: string;
   depositPercentage: string;
@@ -61,7 +76,7 @@ function calculateDepositAmounts(totalGbp: string): {
   }
   const rawDeposit = total * DEPOSIT_PERCENTAGE;
   const minimumApplied =
-    total >= MINIMUM_DEPOSIT_GBP ? Math.max(rawDeposit, MINIMUM_DEPOSIT_GBP) : total;
+    total >= minimumDepositGbp ? Math.max(rawDeposit, minimumDepositGbp) : total;
   const deposit = Math.min(minimumApplied, total);
   const balance = Math.max(0, total - deposit);
   return {
@@ -93,14 +108,22 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
   const data = parsed.data;
 
-  // Reuse customer by phone or create
+  // Reuse customer by phone or create. Emergency bookings without a phone
+  // get a synthetic placeholder so the DB NOT NULL constraint holds; admin
+  // can edit the customer record once a number is captured.
+  const providedPhone = data.customerPhone && data.customerPhone.length >= 7
+    ? data.customerPhone
+    : null;
+  const effectivePhone = providedPhone ?? `NOPHONE-${Date.now()}`;
   let customerId: string;
   try {
-    const existing = await db
-      .select({ id: schema.customers.id })
-      .from(schema.customers)
-      .where(eq(schema.customers.phone, data.customerPhone))
-      .limit(1);
+    const existing = providedPhone
+      ? await db
+          .select({ id: schema.customers.id })
+          .from(schema.customers)
+          .where(eq(schema.customers.phone, providedPhone))
+          .limit(1)
+      : [];
     if (existing[0]) {
       customerId = existing[0].id;
       if (data.customerName || data.customerEmail) {
@@ -115,8 +138,8 @@ export async function POST(req: Request): Promise<NextResponse> {
       const inserted = await db
         .insert(schema.customers)
         .values({
-          fullName: data.customerName ?? 'Phone customer',
-          phone: data.customerPhone,
+          fullName: data.customerName ?? (providedPhone ? 'Phone customer' : 'Emergency customer'),
+          phone: effectivePhone,
           email: data.customerEmail ?? null,
         })
         .returning({ id: schema.customers.id });
@@ -165,7 +188,10 @@ export async function POST(req: Request): Promise<NextResponse> {
   let checkoutPaymentMode: 'FULL' | 'DEPOSIT' = 'FULL';
   if (wantsCard && totalGbp) {
     if (data.paymentMode === 'DEPOSIT') {
-      const calc = calculateDepositAmounts(totalGbp);
+      const calc = calculateDepositAmounts(
+        totalGbp,
+        (await getPricingExtras()).minimumDepositGbp,
+      );
       depositAmountGbp = calc.depositAmountGbp;
       balanceDueGbp = calc.balanceDueGbp;
       depositPercentage = calc.depositPercentage;
@@ -248,8 +274,50 @@ export async function POST(req: Request): Promise<NextResponse> {
       hadLocation: locationId != null,
       paymentMode: data.paymentMode,
       ...(totalGbp ? { totalPriceGbp: totalGbp } : {}),
+      ...(data.engineTotalPriceGbp ? { engineTotalPriceGbp: data.engineTotalPriceGbp } : {}),
+      ...(data.priceOverridden ? { priceOverridden: true } : {}),
     },
   });
+
+  // ---- Learn from admin price edits ----
+  // Record the override so future Quick Booking quotes can adjust their
+  // suggested price based on this admin's recent behaviour.
+  if (
+    data.priceOverridden &&
+    data.engineTotalPriceGbp &&
+    totalGbp &&
+    Number(data.engineTotalPriceGbp) > 0 &&
+    Number(totalGbp) > 0 &&
+    data.engineTotalPriceGbp !== totalGbp
+  ) {
+    const engineNum = Number(data.engineTotalPriceGbp);
+    const adminNum = Number(totalGbp);
+    const multiplier = adminNum / engineNum;
+    const bucket = (() => {
+      const m = data.distanceMiles;
+      if (m == null) return null;
+      if (m < 5) return 0;
+      if (m < 10) return 1;
+      if (m < 20) return 2;
+      if (m < 40) return 3;
+      return 4;
+    })();
+    try {
+      await db.insert(schema.adminPriceOverrides).values({
+        bookingId,
+        createdByAdminId: admin.adminId,
+        jobType: data.jobType,
+        tyreProblemType: data.problemType,
+        ...(data.tyreId ? { tyreId: data.tyreId } : {}),
+        ...(bucket != null ? { distanceBucket: bucket } : {}),
+        engineTotalGbp: engineNum.toFixed(2),
+        adminTotalGbp: adminNum.toFixed(2),
+        adjustmentMultiplier: multiplier.toFixed(4),
+      });
+    } catch {
+      // Learning is best-effort — never fail the booking because of it.
+    }
+  }
 
   // Build the admin Stripe payment URL when card payment was chosen. Admin
   // can open this in the device browser to enter card details directly.

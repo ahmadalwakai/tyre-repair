@@ -61,12 +61,17 @@ export async function POST(req: Request): Promise<NextResponse> {
         .insert(schema.customerLocations)
         .values({
           customerId,
-          captureMethod: 'manual_address',
+          captureMethod:
+            m.latitude != null && m.longitude != null
+              ? 'browser_geolocation'
+              : 'manual_address',
           addressLine1: m.addressLine1,
           addressLine2: m.addressLine2 ?? null,
           city: m.city,
           postcode: m.postcode,
           country: m.country ?? 'United Kingdom',
+          latitude: m.latitude != null ? String(m.latitude) : null,
+          longitude: m.longitude != null ? String(m.longitude) : null,
         })
         .returning({
           id: schema.customerLocations.id,
@@ -140,6 +145,12 @@ export async function POST(req: Request): Promise<NextResponse> {
         ? { addressLine2: input.manualLocation.addressLine2 }
         : {}),
       ...(input.manualLocation.country ? { country: input.manualLocation.country } : {}),
+      ...(typeof input.manualLocation.latitude === 'number'
+        ? { latitude: input.manualLocation.latitude }
+        : {}),
+      ...(typeof input.manualLocation.longitude === 'number'
+        ? { longitude: input.manualLocation.longitude }
+        : {}),
     };
     engineInput.manualLocation = m;
   }

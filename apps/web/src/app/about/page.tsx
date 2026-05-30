@@ -16,8 +16,10 @@ import { ServiceCta } from '@/components/services/ServiceCta';
 import { BreadcrumbJsonLd } from '@/components/seo/BreadcrumbJsonLd';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { LocalBusinessJsonLd } from '@/components/seo/LocalBusinessJsonLd';
+import { InternalLinkGrid } from '@/components/seo/InternalLinkGrid';
 import { buildSeoMetadata } from '@/lib/seo/metadata';
 import { buildAboutPageSchema } from '@/lib/seo/schema';
+import { getTopServiceLinks, getTopLocationLinks } from '@/lib/seo/hub-links';
 import { siteConfig } from '@/lib/site-config';
 
 const PAGE_TITLE = 'About TyreRepair UK';
@@ -74,7 +76,7 @@ const HONEST_PROMISES: readonly PromiseRow[] = [
   },
   {
     heading: 'No fake branches',
-    body: 'Our mobile service operates from one Glasgow base. We do not invent local depots in other cities.',
+    body: 'A Scotland-wide mobile fleet with one head office. We do not invent fake depots — every van and driver is real.',
   },
   {
     heading: 'No pressure to replace',
@@ -104,8 +106,8 @@ export default function AboutPage() {
       <Box as="main">
         <Breadcrumb items={breadcrumb} />
         <ServiceHero
-          title="Glasgow-based mobile tyre help across Scotland"
-          intro="TyreRepair UK is a Glasgow-based mobile tyre repair and replacement service helping drivers across Scotland with urgent tyre problems. Repair-first assessment, honest pricing and one direct phone line."
+          title="Scotland-wide mobile tyre help — we come to you"
+          intro="TyreRepair UK is a Scotland-wide mobile tyre repair and replacement service. Vans and drivers cover the whole country, day and night, with a repair-first assessment, honest pricing and one direct phone line."
           ctaLabel={siteConfig.primaryCtaLabel}
           ctaHref={siteConfig.primaryCtaHref}
         />
@@ -117,10 +119,11 @@ export default function AboutPage() {
                 Who we are
               </Heading>
               <Text color="fg.muted" fontSize={{ base: 'md', md: 'lg' }} lineHeight="1.7">
-                TyreRepair UK is a Glasgow-based mobile tyre repair and replacement service helping
-                drivers across Scotland with urgent tyre problems. We work directly with the
-                customer over the phone or through the online quote, so there is no waiting room and
-                no diary slot — every job is treated as an emergency response.
+                TyreRepair UK is a Scotland-wide mobile tyre repair and replacement service. Our
+                fleet of vans and drivers covers the whole of Scotland with urgent tyre help. We
+                work directly with the customer over the phone or through the online quote, so
+                there is no waiting room and no diary slot — every job is treated as an emergency
+                response.
               </Text>
               <Text color="fg.muted" fontSize={{ base: 'md', md: 'lg' }} lineHeight="1.7">
                 The business is run by people who answer the phone themselves. There is no
@@ -185,7 +188,7 @@ export default function AboutPage() {
           <Container maxW="5xl">
             <Stack gap="5">
               <Heading as="h2" fontFamily="heading" fontSize={{ base: '2xl', md: '3xl' }} color="fg.default">
-                Our Glasgow base
+                Head office
               </Heading>
               <Stack gap="1">
                 <Text color="fg.default" fontWeight="600">{siteConfig.businessName}</Text>
@@ -199,9 +202,10 @@ export default function AboutPage() {
                 </Text>
               </Stack>
               <Text color="fg.muted" fontSize={{ base: 'md', md: 'lg' }} lineHeight="1.7">
-                Our mobile service operates from our Glasgow base and supports drivers across
-                Scotland. We do not run separate regional branches — every van and every job is
-                dispatched from this one address.
+                The head office is in Glasgow but the service is mobile and Scotland-wide. Our vans
+                and drivers cover the whole country — we come to your location, whether you are in
+                the central belt, the Lothians, Fife, Stirling, Ayrshire, the Highlands or the
+                Borders.
               </Text>
             </Stack>
           </Container>
@@ -236,6 +240,23 @@ export default function AboutPage() {
               </SimpleGrid>
             </Stack>
           </Container>
+        </Box>
+
+        <Box px={{ base: '4', md: '6' }} py={{ base: '8', md: '12' }} maxW="5xl" mx="auto">
+          <InternalLinkGrid
+            title="Our core mobile tyre services"
+            intro="Whatever the tyre problem, we have a dedicated service page for it."
+            links={getTopServiceLinks()}
+            columns={{ base: 1, md: 2 }}
+          />
+        </Box>
+        <Box px={{ base: '4', md: '6' }} pb={{ base: '8', md: '12' }} maxW="5xl" mx="auto">
+          <InternalLinkGrid
+            title="Areas we cover"
+            intro="Scotland-wide mobile cover — same callout, same standards, vans to your door."
+            links={getTopLocationLinks()}
+            columns={{ base: 1, md: 4 }}
+          />
         </Box>
 
         <ServiceCta ctaLabel={siteConfig.primaryCtaLabel} ctaHref={siteConfig.primaryCtaHref} />

@@ -36,6 +36,8 @@ export function StockPreviewSection() {
       title="Budget, mid-range, and premium tyres"
       description="The quote flow shows tyre options by size, price tier and availability before payment."
       variant="elevated"
+      backgroundImage="/images/sections/howitworks-wheel.jpg"
+      backgroundAlt="Premium car wheel — budget, mid-range and premium tyre tiers"
     >
       <SimpleGrid columns={{ base: 1, md: 3 }} gap={{ base: '4', md: '6' }}>
         {TIERS.map((tier, i) => (
@@ -46,10 +48,16 @@ export function StockPreviewSection() {
               p={{ base: '6', md: '7' }}
               borderRadius="lg"
               borderWidth="1px"
-              borderColor="border.subtle"
+              borderColor="accent.neon"
               bg="bg.canvas"
-              _hover={{ borderColor: 'border.gold' }}
-              transition="border-color 0.2s"
+              boxShadow="0 0 0 1px rgba(240,24,37,0.35), 0 0 20px rgba(240,24,37,0.25), inset 0 0 12px rgba(240,24,37,0.07)"
+              _hover={{
+                borderColor: 'accent.neon',
+                transform: 'translateY(-2px)',
+                boxShadow:
+                  '0 0 0 1px rgba(240,24,37,0.6), 0 0 30px rgba(240,24,37,0.55), inset 0 0 16px rgba(240,24,37,0.12)',
+              }}
+              transition="border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease"
             >
               <GoldBadge>{tier.name}</GoldBadge>
               <Text fontFamily="heading" fontSize="xl" color="fg.default">

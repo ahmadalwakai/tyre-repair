@@ -15,7 +15,7 @@ export function StatCard({ value, label, description }: StatCardProps) {
       bg="bg.surface"
       p={{ base: '4', md: '5' }}
       transition="border-color 0.2s, box-shadow 0.2s"
-      _hover={{ borderColor: 'border.gold', boxShadow: 'glowSoft' }}
+      _hover={{ borderColor: 'border.accent', boxShadow: 'glowSoft' }}
     >
       <Stack gap="1">
         <Text

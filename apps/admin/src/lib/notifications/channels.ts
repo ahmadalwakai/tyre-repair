@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 
 export const ADMIN_ALERT_CHANNEL_ID = 'admin-alerts';
-export const ADMIN_ALERT_SOUND = 'admin-alert.mp3';
+export const ADMIN_ALERT_SOUND = 'admin_alert.mp3';
 
 let configured = false;
 
@@ -23,7 +23,7 @@ export async function configureAndroidNotificationChannels(): Promise<void> {
       importance: Notifications.AndroidImportance.MAX,
       sound: ADMIN_ALERT_SOUND,
       vibrationPattern: [0, 400, 250, 400],
-      lightColor: '#D4AF37',
+      lightColor: '#E30613',
       enableLights: true,
       enableVibrate: true,
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,

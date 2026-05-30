@@ -148,7 +148,7 @@ export default function BookingDetailScreen(): React.JSX.Element {
                 setRefreshing(true);
                 void load();
               }}
-              tintColor="#D4AF37"
+              tintColor="#E30613"
             />
           }
         >

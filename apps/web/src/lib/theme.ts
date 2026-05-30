@@ -11,9 +11,17 @@ const config = defineConfig({
         text:         { value: colors.text.primary },
         textSecondary:{ value: colors.text.secondary },
         textMuted:    { value: colors.text.muted },
-        gold:         { value: colors.gold[500] },
-        goldDark:     { value: colors.gold[700] },
-        goldNeon:     { value: colors.gold.neon },
+        // Emergency red brand tokens (Phase 1).
+        redPrimary:   { value: colors.red.primary },
+        redHover:     { value: colors.red.hover },
+        redDark:      { value: colors.red.dark },
+        redBright:    { value: colors.red.bright },
+        // Legacy gold-named tokens retained for backward compatibility,
+        // now resolving to the new red palette so existing components
+        // automatically pick up the emergency accent.
+        gold:         { value: colors.red.primary },
+        goldDark:     { value: colors.red.dark },
+        goldNeon:     { value: colors.red.bright },
         borderSubtle: { value: colors.border.subtle },
         borderGold:   { value: colors.border.strong },
         success:      { value: colors.semantic.success },
@@ -42,9 +50,15 @@ const config = defineConfig({
         'bg.surface':   { value: '{colors.bgElevated}' },
         'fg.default':   { value: '{colors.text}' },
         'fg.muted':     { value: '{colors.textMuted}' },
-        'accent.solid': { value: '{colors.gold}' },
-        'accent.neon':  { value: '{colors.goldNeon}' },
+        // Emergency red accent set.
+        'accent.solid': { value: '{colors.redPrimary}' },
+        'accent.neon':  { value: '{colors.redBright}' },
+        'accent.hover': { value: '{colors.redHover}' },
+        'accent.deep':  { value: '{colors.redDark}' },
         'border.subtle':{ value: '{colors.borderSubtle}' },
+        'border.accent':{ value: '{colors.borderGold}' },
+        // Backward-compatible alias — existing references to border.gold
+        // continue to compile but now render in red.
         'border.gold':  { value: '{colors.borderGold}' },
       },
     },
@@ -60,27 +74,33 @@ const config = defineConfig({
         },
         variants: {
           visual: {
+            // Variant name retained for backward compatibility; visual
+            // output is now emergency red.
             gold: {
               bg: 'accent.solid',
-              color: 'bg.canvas',
-              _hover: { boxShadow: 'glowMedium', transform: 'translateY(-1px)' },
-              _active: { transform: 'translateY(0)' },
+              color: 'white',
+              _hover: {
+                bg: 'accent.hover',
+                boxShadow: 'glowMedium',
+                transform: 'translateY(-1px)',
+              },
+              _active: { bg: 'accent.deep', transform: 'translateY(0)' },
             },
             outline: {
               bg: 'transparent',
               color: 'accent.solid',
               borderWidth: '1px',
               borderColor: 'accent.solid',
-              _hover: { boxShadow: 'glowSoft', bg: 'rgba(212,175,55,0.08)' },
+              _hover: { boxShadow: 'glowSoft', bg: 'rgba(227,6,19,0.08)' },
             },
             ghost: {
               bg: 'transparent',
-              color: 'fg.default',
-              _hover: { bg: 'bg.surface' },
+              color: 'accent.solid',
+              _hover: { bg: 'rgba(227,6,19,0.08)' },
             },
           },
           size: {
-            sm: { px: '3', py: '2', fontSize: 'sm', minH: '36px' },
+            sm: { px: '3', py: '2', fontSize: 'sm', minH: '40px' },
             md: { px: '5', py: '3', fontSize: 'md', minH: '44px' },
             lg: { px: '7', py: '4', fontSize: 'lg', minH: '52px' },
           },
@@ -90,8 +110,8 @@ const config = defineConfig({
     },
     keyframes: {
       neonPulse: {
-        '0%, 100%': { boxShadow: '0 0 12px rgba(255,215,0,0.35)' },
-        '50%': { boxShadow: '0 0 28px rgba(255,215,0,0.7)' },
+        '0%, 100%': { boxShadow: '0 0 12px rgba(240,24,37,0.35)' },
+        '50%': { boxShadow: '0 0 28px rgba(240,24,37,0.7)' },
       },
       shimmer: {
         '0%': { backgroundPosition: '-200% 0' },
@@ -109,7 +129,14 @@ const config = defineConfig({
     body: {
       WebkitFontSmoothing: 'antialiased',
     } as never,
-    '*::selection': { bg: 'rgba(212,175,55,0.3)', color: 'white' },
+    '*::selection': { bg: 'rgba(227,6,19,0.30)', color: 'white' },
+    // Keyboard-only focus ring in emergency red. Mouse focus retains
+    // Chakra defaults because :focus-visible only matches keyboard focus.
+    ':focus-visible': {
+      outline: '2px solid',
+      outlineColor: 'accent.solid',
+      outlineOffset: '2px',
+    },
   },
 });
 

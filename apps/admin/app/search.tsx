@@ -32,7 +32,7 @@ function BackButton(): React.JSX.Element {
       android_ripple={{ color: 'rgba(212,175,55,0.15)', borderless: true }}
       className="flex-row items-center px-3 py-2 mr-1 rounded-md"
     >
-      <AdminIcon name="chevron-left" size={20} color="#D4AF37" />
+      <AdminIcon name="chevron-left" size={20} color="#E30613" />
       <Text className="text-gold text-base ml-1">Back</Text>
     </Pressable>
   );
@@ -95,7 +95,7 @@ export default function SearchScreen(): React.JSX.Element {
       </View>
       <View className="px-3 pt-2">
         <View className="bg-surface border border-gold/40 rounded-lg px-3 py-2 flex-row items-center">
-          <AdminIcon name="search" size={18} color="#D4AF37" />
+          <AdminIcon name="search" size={18} color="#E30613" />
           <TextInput
             value={q}
             onChangeText={setQ}
@@ -116,7 +116,7 @@ export default function SearchScreen(): React.JSX.Element {
       <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 32 }}>
         {loading ? (
           <View className="items-center py-6">
-            <ActivityIndicator color="#D4AF37" />
+            <ActivityIndicator color="#E30613" />
           </View>
         ) : null}
 

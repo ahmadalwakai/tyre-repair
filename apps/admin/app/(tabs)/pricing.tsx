@@ -14,6 +14,7 @@ import {
 } from '@/lib/api/pricing';
 import type { PricingOverride, PricingRule } from '@/types/pricing';
 import { ApiError } from '@/lib/api/client';
+import { PricingThresholdsCard } from '@/components/pricing/PricingThresholdsCard';
 
 export default function PricingScreen(): React.JSX.Element {
   const [rules, setRules] = useState<PricingRule[]>([]);
@@ -112,7 +113,7 @@ export default function PricingScreen(): React.JSX.Element {
               setRefreshing(true);
               void load();
             }}
-            tintColor="#D4AF37"
+            tintColor="#E30613"
           />
         }
       >
@@ -149,6 +150,8 @@ export default function PricingScreen(): React.JSX.Element {
             />
           </View>
         </GoldCard>
+
+        <PricingThresholdsCard />
 
         <GoldCard>
           <Text className="text-text font-semibold text-base mb-3">New override</Text>

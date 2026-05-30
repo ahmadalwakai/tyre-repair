@@ -14,16 +14,10 @@ function formatGbp(value: string): string {
   return Number.isFinite(n) ? `£${n.toFixed(2)}` : `£${value}`;
 }
 
-function formatMultiplier(mul: number): string {
-  if (!Number.isFinite(mul)) return '×1.00';
-  return `×${mul.toFixed(2)}`;
-}
-
 export function QuoteSummaryCard({ quote }: QuoteSummaryCardProps) {
   const { tyre, pricing, vehicle, location, availability, jobType, backupTyre } = quote;
   const { breakdown } = pricing;
   const expiresAt = new Date(quote.expiresAt);
-  const hasOverrides = breakdown.overrides.activeOverrides.length > 0;
   const isAssessment = jobType === 'ASSESSMENT';
 
   return (
@@ -106,51 +100,7 @@ export function QuoteSummaryCard({ quote }: QuoteSummaryCardProps) {
 
       <Box borderTopWidth="1px" borderColor="border.subtle" pt="4">
         <Stack gap="2">
-          <PriceRow
-            label={isAssessment ? 'Assessment fee' : 'Tyre base price'}
-            value={formatGbp(pricing.basePriceGbp)}
-          />
-          <FactorRow
-            label="Time of day"
-            detail={breakdown.time.reason}
-            multiplier={breakdown.time.multiplier}
-          />
-          <FactorRow
-            label="Weather conditions"
-            detail={breakdown.weather.reason}
-            multiplier={breakdown.weather.multiplier}
-          />
-          <FactorRow
-            label="Date adjustment"
-            detail={breakdown.date.reason}
-            multiplier={breakdown.date.multiplier}
-          />
-          <FactorRow
-            label="Current demand"
-            detail={breakdown.demand.reason}
-            multiplier={breakdown.demand.multiplier}
-          />
-          {hasOverrides && (
-            <FactorRow
-              label="Admin price adjustment"
-              detail={breakdown.overrides.activeOverrides.map((o) => o.label).join(', ')}
-              multiplier={breakdown.overrides.multiplier}
-            />
-          )}
-          <PriceRow
-            label={isAssessment ? 'Assessment fee (after factors)' : 'Tyre subtotal (after factors)'}
-            value={formatGbp(pricing.multipliedTyrePriceGbp)}
-          />
-          <PriceRow
-            label={
-              breakdown.distance.distanceMiles === null
-                ? 'Distance from Glasgow HQ'
-                : `Distance from Glasgow HQ (${breakdown.distance.distanceMiles.toFixed(1)} mi)`
-            }
-            value={formatGbp(pricing.distanceFeeGbp)}
-            subtext={breakdown.distance.reason}
-          />
-          <Flex justify="space-between" pt="2" borderTopWidth="1px" borderColor="border.subtle">
+          <Flex justify="space-between" pt="2">
             <Text fontFamily="heading" color="fg.default" fontSize="lg">
               Total to pay
             </Text>
@@ -158,6 +108,29 @@ export function QuoteSummaryCard({ quote }: QuoteSummaryCardProps) {
               {formatGbp(pricing.totalPriceGbp)}
             </Text>
           </Flex>
+          <HStack
+            gap="2"
+            align="flex-start"
+            mt="1"
+            p="2"
+            borderRadius="md"
+            bg="rgba(255,215,0,0.08)"
+            borderWidth="1px"
+            borderColor="accent.neon"
+          >
+            <Text color="accent.neon" fontSize="md" lineHeight="1">
+              ★
+            </Text>
+            <Text
+              color="accent.neon"
+              fontSize="sm"
+              fontFamily="heading"
+              fontWeight="700"
+              letterSpacing="0.02em"
+            >
+              Supplied and fitted on your location.
+            </Text>
+          </HStack>
           {isAssessment ? (
             <Text color="fg.muted" fontSize="xs" pt="2">
               If a replacement tyre is needed, we quote it on site and you decide before any extra
@@ -168,71 +141,12 @@ export function QuoteSummaryCard({ quote }: QuoteSummaryCardProps) {
       </Box>
 
       <Stack gap="1">
-        {breakdown.notes.map((n) => (
-          <Text key={n} color="fg.muted" fontSize="xs">
-            • {n}
-          </Text>
-        ))}
         <Text color="fg.muted" fontSize="xs">
           Quote expires at {expiresAt.toLocaleString('en-GB')}.
         </Text>
       </Stack>
 
       <HStack gap="3" wrap="wrap" />
-    </Stack>
-  );
-}
-
-function PriceRow({
-  label,
-  value,
-  subtext,
-}: {
-  label: string;
-  value: string;
-  subtext?: string;
-}) {
-  return (
-    <Stack gap="0">
-      <Flex justify="space-between">
-        <Text color="fg.muted" fontSize="sm">
-          {label}
-        </Text>
-        <Text color="fg.default" fontSize="sm">
-          {value}
-        </Text>
-      </Flex>
-      {subtext ? (
-        <Text color="fg.muted" fontSize="xs">
-          {subtext}
-        </Text>
-      ) : null}
-    </Stack>
-  );
-}
-
-function FactorRow({
-  label,
-  detail,
-  multiplier,
-}: {
-  label: string;
-  detail: string;
-  multiplier: number;
-}) {
-  return (
-    <Stack gap="0">
-      <Flex justify="space-between">
-        <Text color="fg.muted" fontSize="sm">
-          {label}
-        </Text>
-        <Text color="fg.default" fontSize="sm">
-          {formatMultiplier(multiplier)}
-        </Text>
-      </Flex>
-      <Text color="fg.muted" fontSize="xs">
-        {detail}
-      </Text>
     </Stack>
   );
 }

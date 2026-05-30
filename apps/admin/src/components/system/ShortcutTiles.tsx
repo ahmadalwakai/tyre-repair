@@ -42,7 +42,7 @@ export function ShortcutTiles(): React.JSX.Element {
         {TILES.map((t) => {
           const chipBg = t.highlight ? 'bg-gold' : 'bg-gold/10';
           const chipBorder = t.highlight ? 'border-gold' : 'border-gold/30';
-          const iconColor = t.highlight ? '#0B0B0F' : '#D4AF37';
+          const iconColor = t.highlight ? '#0B0B0F' : '#E30613';
           const cardBorder = t.highlight ? 'border-gold/60' : 'border-border';
           return (
             <View key={t.href} className="w-1/4 px-1 mb-2">

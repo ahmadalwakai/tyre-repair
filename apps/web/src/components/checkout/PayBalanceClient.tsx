@@ -99,13 +99,13 @@ export function PayBalanceClient({ bookingId }: PayBalanceClientProps) {
       <Box maxW="lg" mx="auto" px={4}>
         <Stack gap={6}>
           <Stack gap={1}>
-            <Text fontFamily="heading" color="brand.gold" fontSize="2xl">
+            <Text fontFamily="heading" color="accent.solid" fontSize="2xl">
               Pay outstanding balance
             </Text>
             <Text color="gray.300">
               {session.customerName ? `Hi ${session.customerName}, ` : ''}your
               outstanding balance is{' '}
-              <Text as="span" color="brand.gold" fontWeight="bold">
+              <Text as="span" color="accent.solid" fontWeight="bold">
                 £{Number(session.amountGbp).toFixed(2)}
               </Text>
               .
@@ -171,8 +171,8 @@ function PayBalanceForm({ trackingId, amountGbp }: PayBalanceFormProps) {
         ) : null}
         <Button
           type="submit"
-          bg="brand.gold"
-          color="black"
+          bg="accent.solid"
+          color="white"
           fontFamily="heading"
           disabled={status === 'processing' || !stripe || !elements}
           loading={status === 'processing'}

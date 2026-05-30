@@ -214,7 +214,7 @@ export default function CallbacksScreen(): React.JSX.Element {
                 setRefreshing(true);
                 void load();
               }}
-              tintColor="#D4AF37"
+              tintColor="#E30613"
             />
           }
         />

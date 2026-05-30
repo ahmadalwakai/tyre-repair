@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="TyreRepair UK emblem">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#1a1a1a"/>
+      <stop offset="100%" stop-color="#050505"/>
+    </radialGradient>
+    <linearGradient id="red" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F01825"/>
+      <stop offset="100%" stop-color="#8F0010"/>
+    </linearGradient>
+    <linearGradient id="redBright" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F01825"/>
+      <stop offset="100%" stop-color="#D90416"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background disc -->
+  <circle cx="100" cy="100" r="98" fill="url(#bg)" stroke="#E30613" stroke-width="2"/>
+
+  <!-- Outer tyre ring -->
+  <circle cx="100" cy="100" r="70" fill="none" stroke="url(#red)" stroke-width="10"/>
+
+  <!-- Tread blocks -->
+  <g fill="url(#redBright)">
+    <rect x="96" y="22" width="8" height="16" rx="1"/>
+    <rect x="96" y="162" width="8" height="16" rx="1"/>
+    <rect x="22" y="96" width="16" height="8" rx="1"/>
+    <rect x="162" y="96" width="16" height="8" rx="1"/>
+    <rect x="96" y="22" width="8" height="16" rx="1" transform="rotate(45 100 100)"/>
+    <rect x="96" y="22" width="8" height="16" rx="1" transform="rotate(-45 100 100)"/>
+    <rect x="96" y="22" width="8" height="16" rx="1" transform="rotate(135 100 100)"/>
+    <rect x="96" y="22" width="8" height="16" rx="1" transform="rotate(-135 100 100)"/>
+  </g>
+
+  <!-- Inner hub -->
+  <circle cx="100" cy="100" r="42" fill="#0a0a0a" stroke="#E30613" stroke-width="2"/>
+
+  <!-- Speed swoosh -->
+  <path d="M55 110 Q100 70 145 110" stroke="url(#redBright)" stroke-width="6" stroke-linecap="round" fill="none"/>
+  <path d="M62 122 Q100 92 138 122" stroke="#F01825" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.7"/>
+
+  <!-- Wordmark TR -->
+  <text x="100" y="108"
+        text-anchor="middle"
+        font-family="'Inter','Helvetica Neue',Arial,sans-serif"
+        font-weight="900"
+        font-size="34"
+        fill="#FFFFFF"
+        letter-spacing="-1">TR</text>
+</svg>

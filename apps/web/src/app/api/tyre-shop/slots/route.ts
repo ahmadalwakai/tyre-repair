@@ -12,6 +12,9 @@ export async function GET(req: Request): Promise<NextResponse> {
   const slots = generateTyreShopSlots({
     isBackorder,
     backorderEtaWorkingDays: fees.backorderEtaWorkingDays,
+    slotTimes: fees.slotTimes,
+    windowDays: fees.bookingWindowDays,
+    sundaysOpen: fees.sundaysOpen,
   });
   return NextResponse.json({ slots, isBackorder }, { status: 200 });
 }

@@ -10,7 +10,7 @@ export const HOME_FAQS: readonly LandingFaqItem[] = [
     id: 'coverage',
     question: 'Do you cover my area?',
     answer:
-      'TyreRepair UK covers the whole of Scotland from its Glasgow base. The quote flow calculates distance automatically.',
+      'TyreRepair UK runs a mobile fleet of vans and drivers covering the whole of Scotland — we come to you. The quote flow calculates travel time to your location automatically.',
   },
   {
     id: 'later',

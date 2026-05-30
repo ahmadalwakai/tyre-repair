@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import { AppShell, ScreenHeader } from '@/components/layout/AppShell';
 import { OfflineBanner } from '@/components/system/OfflineBanner';
 import { AdminButton } from '@/components/ui/AdminButton';
+import { AdminIcon } from '@/components/ui/AdminIcon';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
 import { useToast } from '@/components/ui/Toast';
@@ -13,6 +15,29 @@ import {
   discardOutboxItem,
   type OutboxItem,
 } from '@/lib/offline/outbox';
+
+function BackButton(): React.JSX.Element {
+  const goBack = (): void => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(tabs)/more' as never);
+    }
+  };
+  return (
+    <Pressable
+      onPress={goBack}
+      accessibilityRole="button"
+      accessibilityLabel="Go back"
+      hitSlop={12}
+      android_ripple={{ color: 'rgba(212,175,55,0.15)', borderless: true }}
+      className="flex-row items-center px-3 py-2 mr-1 rounded-md"
+    >
+      <AdminIcon name="chevron-left" size={20} color="#E30613" />
+      <Text className="text-gold text-base ml-1">Back</Text>
+    </Pressable>
+  );
+}
 
 /**
  * Admin Stability & Field Operations Pack — Part 2
@@ -82,10 +107,15 @@ export default function OutboxScreen(): React.JSX.Element {
   return (
     <AppShell>
       <OfflineBanner />
-      <ScreenHeader
-        title="Outbox"
-        subtitle="Pending safe actions waiting to send"
-      />
+      <View className="flex-row items-center pt-2">
+        <BackButton />
+        <View className="flex-1">
+          <ScreenHeader
+            title="Outbox"
+            subtitle="Pending safe actions waiting to send"
+          />
+        </View>
+      </View>
       <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 32 }}>
         <AnimatedCard>
           <View className="bg-surface rounded-xl border border-border p-4 mb-3">

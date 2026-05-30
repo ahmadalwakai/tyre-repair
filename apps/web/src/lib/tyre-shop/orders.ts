@@ -306,6 +306,7 @@ export async function createTyreShopOrder(
   const expectedReadyDate = expectedReadyDateLabel({
     isBackorder: quote.isBackorder,
     backorderEtaWorkingDays: fees.backorderEtaWorkingDays,
+    sundaysOpen: fees.sundaysOpen,
   });
 
   const slotLabel = `${input.selectedSlot.date} ${input.selectedSlot.time}`;

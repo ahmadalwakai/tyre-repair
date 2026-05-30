@@ -33,9 +33,16 @@ export function InternalLinkGrid({
           <NextLink key={l.href} href={l.href} prefetch={false}>
             <Box
               borderWidth="1px"
-              borderColor="border.subtle"
-              _hover={{ borderColor: 'border.gold', bg: 'rgba(212,175,55,0.06)' }}
-              transition="border-color 120ms, background-color 120ms"
+              borderColor="accent.neon"
+              boxShadow="0 0 0 1px rgba(240,24,37,0.35), 0 0 16px rgba(240,24,37,0.2), inset 0 0 10px rgba(240,24,37,0.06)"
+              _hover={{
+                borderColor: 'accent.neon',
+                bg: 'rgba(240,24,37,0.06)',
+                boxShadow:
+                  '0 0 0 1px rgba(240,24,37,0.6), 0 0 26px rgba(240,24,37,0.5), inset 0 0 14px rgba(240,24,37,0.12)',
+                transform: 'translateY(-2px)',
+              }}
+              transition="border-color 200ms ease, background-color 200ms ease, box-shadow 200ms ease, transform 200ms ease"
               borderRadius="lg"
               p="4"
               h="100%"

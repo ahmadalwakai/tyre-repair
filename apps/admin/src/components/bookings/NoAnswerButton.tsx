@@ -72,8 +72,8 @@ export function NoAnswerButton({
               <Switch
                 value={sendSms}
                 onValueChange={setSendSms}
-                trackColor={{ false: '#2A2A33', true: '#A8851D' }}
-                thumbColor={sendSms ? '#D4AF37' : '#6B6B75'}
+                trackColor={{ false: '#2A2A33', true: '#8F0010' }}
+                thumbColor={sendSms ? '#E30613' : '#6B6B75'}
               />
             </View>
 

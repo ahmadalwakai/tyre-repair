@@ -1,4 +1,7 @@
-import Pusher, { type Channel } from 'pusher-js';
+// Use the web build to avoid the RN entry's hard dependency on
+// @react-native-community/netinfo (not installed). Websockets work the same.
+import Pusher from 'pusher-js/dist/web/pusher.js';
+import type { Channel } from 'pusher-js';
 import { getToken } from '@/lib/auth/session';
 import { apiBaseUrl } from '@/lib/api/client';
 

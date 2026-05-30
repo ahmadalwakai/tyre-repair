@@ -79,6 +79,14 @@ export function getMessageTemplates(args?: {
   return apiGet(`/api/admin/message-templates${q ? `?${q}` : ''}`);
 }
 
+export function updateMessageTemplate(body: {
+  templateKey: AdminMessageTemplateKey;
+  /** Send an empty string (or omit) to restore the default. */
+  template?: string;
+}): Promise<MessageTemplatesResponse> {
+  return apiPatch(`/api/admin/message-templates`, body);
+}
+
 /* ---------------- No-answer (F1) ---------------- */
 export function markBookingNoAnswer(
   bookingId: string,

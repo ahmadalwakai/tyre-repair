@@ -132,7 +132,7 @@ export function HelpMeChooseSheet({ open, onOpenChange }: HelpMeChooseSheetProps
                       justifyContent: 'center',
                       gap: '8px',
                       borderRadius: '12px',
-                      background: '#D4AF37',
+                      background: '#E30613',
                       color: '#0A0A0A',
                       fontWeight: 700,
                     }}

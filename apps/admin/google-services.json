@@ -1,0 +1,105 @@
+{
+  "project_info": {
+    "project_number": "68104760373",
+    "project_id": "assisted-chat-admin",
+    "storage_bucket": "assisted-chat-admin.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:68104760373:android:a134e1b9c8da27cd3e957c",
+        "android_client_info": {
+          "package_name": "co.uk.orientek24.admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiJnczBC8fJ2TsoWaDMK9aqFezZLAyRvw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:68104760373:android:5ca5ee2a4e5278953e957c",
+        "android_client_info": {
+          "package_name": "uk.margheritapizzeria.admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiJnczBC8fJ2TsoWaDMK9aqFezZLAyRvw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:68104760373:android:e92a7609b845bd3b3e957c",
+        "android_client_info": {
+          "package_name": "uk.tyrerepair.admin"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiJnczBC8fJ2TsoWaDMK9aqFezZLAyRvw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:68104760373:android:06af9775ae90f2143e957c",
+        "android_client_info": {
+          "package_name": "uk.tyrerescue.adminalert"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiJnczBC8fJ2TsoWaDMK9aqFezZLAyRvw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:68104760373:android:6bce66bfe6d741473e957c",
+        "android_client_info": {
+          "package_name": "uk.tyrerescue.assistedchat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiJnczBC8fJ2TsoWaDMK9aqFezZLAyRvw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

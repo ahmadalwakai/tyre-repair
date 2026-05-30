@@ -55,6 +55,8 @@ export function QuoteDisplayStep({ address, tyre, onBack }: QuoteDisplayStepProp
           postcode: address.postcode,
         };
         if (address.addressLine2) m.addressLine2 = address.addressLine2;
+        if (typeof address.latitude === 'number') m.latitude = address.latitude;
+        if (typeof address.longitude === 'number') m.longitude = address.longitude;
         body.manualLocation = m;
       } else if (address.locationId) {
         body.locationId = address.locationId;
@@ -64,6 +66,10 @@ export function QuoteDisplayStep({ address, tyre, onBack }: QuoteDisplayStepProp
           city: address.city,
           postcode: address.postcode,
           ...(address.addressLine2 ? { addressLine2: address.addressLine2 } : {}),
+          ...(typeof address.latitude === 'number' ? { latitude: address.latitude } : {}),
+          ...(typeof address.longitude === 'number'
+            ? { longitude: address.longitude }
+            : {}),
         };
       }
 

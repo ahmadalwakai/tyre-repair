@@ -11,7 +11,16 @@ export function FaqSection() {
       title="Frequently asked questions"
       description="Quick answers about emergency callouts, stock, and payments."
     >
-      <Box maxW="3xl" mx="auto">
+      <Box
+        maxW="3xl"
+        mx="auto"
+        p={{ base: '4', md: '6' }}
+        borderRadius="lg"
+        borderWidth="1px"
+        borderColor="accent.neon"
+        bg="bg.canvas"
+        boxShadow="0 0 0 1px rgba(240,24,37,0.35), 0 0 22px rgba(240,24,37,0.25), inset 0 0 14px rgba(240,24,37,0.07)"
+      >
         <Accordion.Root collapsible multiple={false}>
           {HOME_FAQS.map((f) => (
             <Accordion.Item

@@ -1,6 +1,6 @@
 import React from 'react';
-import { ScrollView, Text, View } from 'react-native';
-import { AppShell, ScreenHeader } from '@/components/layout/AppShell';
+import { Linking, ScrollView, Text, View } from 'react-native';
+import { AppShell, ScreenHeader, useTabBarSpacer } from '@/components/layout/AppShell';
 import { OfflineBanner } from '@/components/system/OfflineBanner';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { MoreMenuSection } from '@/components/navigation/MoreMenuSection';
@@ -9,6 +9,7 @@ import { useSession } from '@/components/auth/SessionProvider';
 
 export default function MoreScreen(): React.JSX.Element {
   const { signOut, admin } = useSession();
+  const tabBarSpacer = useTabBarSpacer();
 
   return (
     <AppShell>
@@ -17,7 +18,14 @@ export default function MoreScreen(): React.JSX.Element {
         title="More"
         subtitle={admin?.email ?? 'Tools, settings and admin'}
       />
-      <ScrollView contentContainerStyle={{ padding: 12, paddingBottom: 32 }}>
+      <ScrollView
+        contentContainerStyle={{
+          paddingHorizontal: 14,
+          paddingTop: 14,
+          paddingBottom: tabBarSpacer + 24,
+        }}
+        showsVerticalScrollIndicator={false}
+      >
         <MoreMenuSection title="Operations">
           <MoreMenuItem
             label="Search"
@@ -53,6 +61,11 @@ export default function MoreScreen(): React.JSX.Element {
             label="Live visitors"
             description="Customers active on the website right now"
             href="/visitors"
+          />
+          <MoreMenuItem
+            label="SEO diagnostics"
+            description="Map of website traffic and top landing pages"
+            href="/seo-diagnostics"
           />
         </MoreMenuSection>
 
@@ -128,6 +141,21 @@ export default function MoreScreen(): React.JSX.Element {
               void signOut();
             }}
           />
+        </View>
+
+        <View className="items-center mt-6 px-4">
+          <Text className="text-text-dim text-[11px] text-center">
+            Made with Love by Mr Ahmad Alwakai
+          </Text>
+          <Text className="text-text-dim text-[11px] text-center">
+            Lead developer of{' '}
+            <Text
+              className="text-gold underline"
+              onPress={() => void Linking.openURL('https://www.zyphonsystems.com/')}
+            >
+              zyphonsystems.com
+            </Text>
+          </Text>
         </View>
 
         <Text className="text-text-dim text-[11px] text-center mt-4">

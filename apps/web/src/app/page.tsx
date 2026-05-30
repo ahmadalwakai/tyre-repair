@@ -7,6 +7,7 @@ import { HeroSection } from '@/components/landing/HeroSection';
 import { MobileTrustStrip } from '@/components/mobile/MobileTrustStrip';
 import { EmergencyBanner } from '@/components/landing/EmergencyBanner';
 import { ServiceStatusBanner } from '@/components/landing/ServiceStatusBanner';
+import { LiveNewsTicker } from '@/components/landing/LiveNewsTicker';
 import { ServicesSection } from '@/components/landing/ServicesSection';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { CoverageSection } from '@/components/landing/CoverageSection';
@@ -21,9 +22,9 @@ import { HOME_FAQS } from '@/lib/landing/home-faqs';
 import { buildSeoMetadata } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = buildSeoMetadata({
-  title: 'Mobile Tyre Fitting Near You | TyreRepair UK',
+  title: 'Mobile Tyre Fitting Across Scotland | 24/7 Vans To You | TyreRepair UK',
   description:
-    'Mobile tyre fitting and emergency tyre repair across Scotland from a Glasgow base. Day, night and weekend mobile tyre fitter — quote in seconds.',
+    'Scotland-wide mobile tyre fitting and emergency tyre repair. Vans dispatched 24/7 across the central belt, Lothians, Fife, Stirling, Ayrshire, Highlands and Borders — we come to you.',
   path: '/',
 });
 
@@ -51,12 +52,12 @@ const TOP_SERVICE_LINKS = [
   {
     label: 'Glasgow mobile tyre fitter',
     href: '/locations/glasgow',
-    description: 'Glasgow base, full city cover G1–G77.',
+    description: 'Full city cover G1–G77, day and night.',
   },
   {
     label: 'Edinburgh mobile tyre fitter',
     href: '/locations/edinburgh',
-    description: 'Edinburgh and Lothians from Glasgow.',
+    description: 'Edinburgh and the Lothians, 24/7.',
   },
   {
     label: 'Buy tyres online',
@@ -69,6 +70,7 @@ export default function HomePage() {
   return (
     <>
       <SiteHeader />
+      <LiveNewsTicker />
       <Box as="main">
         <HeroSection />
         <MobileTrustStrip />

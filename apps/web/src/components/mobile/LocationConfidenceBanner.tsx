@@ -89,7 +89,7 @@ export function LocationConfidenceBanner({ location, onImprove }: LocationConfid
           style={{
             all: 'unset',
             cursor: 'pointer',
-            color: '#FFD700',
+            color: '#E30613',
             fontSize: '0.8rem',
             fontWeight: 600,
             padding: '6px 8px',

@@ -20,15 +20,15 @@ import { findLocationPage } from '@/lib/seo/location-pages';
 import type { InternalLinkItem } from '@/types/seo';
 
 interface PageProps {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ service: string }>;
 }
 
 export function generateStaticParams() {
-  return SERVICE_SLUGS.map((slug) => ({ slug }));
+  return SERVICE_SLUGS.map((service) => ({ service }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = await params;
+  const { service: slug } = await params;
   const page = findServicePage(slug);
   if (!page) {
     return buildNoIndexMetadata({
@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ServicePageRoute({ params }: PageProps) {
-  const { slug } = await params;
+  const { service: slug } = await params;
   const page = findServicePage(slug);
   if (!page) notFound();
 
@@ -67,7 +67,7 @@ export default async function ServicePageRoute({ params }: PageProps) {
     .filter((p): p is NonNullable<ReturnType<typeof findLocationPage>> => Boolean(p))
     .map((p) => ({
       label: `${p.city} mobile tyre fitting`,
-      href: `/locations/${p.slug}`,
+      href: `/services/${page.slug}/${p.slug}`,
       description: p.region,
     }));
 
@@ -102,8 +102,8 @@ export default async function ServicePageRoute({ params }: PageProps) {
         </Box>
         <Box px={{ base: '4', md: '6' }} pb={{ base: '8', md: '12' }} maxW="5xl" mx="auto">
           <InternalLinkGrid
-            title="Locations covered for this service"
-            intro="Mobile cover, dispatched from Glasgow."
+            title={`${page.title} — locations covered`}
+            intro="Scotland-wide mobile cover — vans dispatched to your location."
             links={relatedLocationLinks}
             columns={{ base: 1, md: 4 }}
           />

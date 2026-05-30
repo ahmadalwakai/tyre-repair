@@ -3,6 +3,9 @@
 // Keep this file as plain CommonJS — it is the React Native runtime entry
 // (`package.json` "main") and must work with both Hermes and Metro require.
 
+// Side-effect import required by react-native-gesture-handler on Android so
+// the native module attaches before any RN view tries to use it.
+require('react-native-gesture-handler');
 require('@expo/metro-runtime');
 
 const Sentry = require('@sentry/react-native');

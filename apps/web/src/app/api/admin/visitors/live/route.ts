@@ -23,6 +23,8 @@ export async function GET(req: Request): Promise<NextResponse> {
         approxCity: schema.liveVisitors.approxCity,
         approxRegion: schema.liveVisitors.approxRegion,
         approxCountry: schema.liveVisitors.approxCountry,
+        latitudeApprox: schema.liveVisitors.latitudeApprox,
+        longitudeApprox: schema.liveVisitors.longitudeApprox,
         consentGiven: schema.liveVisitors.consentGiven,
         lastSeenAt: schema.liveVisitors.lastSeenAt,
       })
@@ -34,12 +36,20 @@ export async function GET(req: Request): Promise<NextResponse> {
     return NextResponse.json({ error: 'Could not load visitors' }, { status: 500 });
   }
 
+  const toFiniteNumber = (raw: unknown): number | null => {
+    if (raw == null) return null;
+    const n = typeof raw === 'number' ? raw : Number(raw);
+    return Number.isFinite(n) ? n : null;
+  };
+
   const visitors = rows.map((v) => ({
     visitorId: v.visitorId,
     currentPage: v.currentPage,
     approxCity: v.approxCity,
     approxRegion: v.approxRegion,
     approxCountry: v.approxCountry,
+    latitude: toFiniteNumber(v.latitudeApprox),
+    longitude: toFiniteNumber(v.longitudeApprox),
     consentGiven: v.consentGiven,
     lastSeenAt: v.lastSeenAt.toISOString(),
   }));

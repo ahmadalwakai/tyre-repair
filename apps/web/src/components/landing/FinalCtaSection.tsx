@@ -1,4 +1,5 @@
 import { Box, Container, Flex, Heading, Stack, Text } from '@chakra-ui/react';
+import Image from 'next/image';
 import { GoldButton } from '@/components/ui/GoldButton';
 import { siteConfig } from '@/lib/site-config';
 import { buildWhatsappHref } from '@/lib/contact/whatsapp-message';
@@ -13,15 +14,52 @@ export function FinalCtaSection() {
       py={{ base: '14', md: '20' }}
       px={{ base: '4', md: '6' }}
     >
+      {/* Decorative dark photo background */}
       <Box
         aria-hidden
         position="absolute"
         inset="0"
+        zIndex="0"
+        opacity={0.22}
+        pointerEvents="none"
+        css={{ '& img': { objectFit: 'cover', objectPosition: 'center' } }}
+      >
+        <Image
+          src="/images/sections/hero-tyre-dark.jpg"
+          alt=""
+          fill
+          sizes="100vw"
+          quality={70}
+        />
+      </Box>
+      <Box
+        aria-hidden
+        position="absolute"
+        inset="0"
+        zIndex="0"
+        pointerEvents="none"
+        bgGradient="linear(to-b, rgba(10,10,12,0.85), rgba(10,10,12,0.7) 50%, rgba(10,10,12,0.92))"
+      />
+      <Box
+        aria-hidden
+        position="absolute"
+        inset="0"
+        zIndex="0"
         bgGradient="radial(closest-side, rgba(255,215,0,0.18), transparent 65%)"
         pointerEvents="none"
       />
-      <Container maxW="4xl" position="relative">
-        <Stack gap="6" textAlign="center" align="center">
+      <Container maxW="4xl" position="relative" zIndex="1">
+        <Stack
+          gap="6"
+          textAlign="center"
+          align="center"
+          p={{ base: '6', md: '10' }}
+          borderRadius="lg"
+          borderWidth="1px"
+          borderColor="accent.neon"
+          bg="bg.canvas"
+          boxShadow="0 0 0 1px rgba(240,24,37,0.35), 0 0 28px rgba(240,24,37,0.3), inset 0 0 16px rgba(240,24,37,0.08)"
+        >
           <Heading
             as="h2"
             fontFamily="heading"
@@ -36,7 +74,7 @@ export function FinalCtaSection() {
           </Heading>
           <Text color="fg.muted" fontSize={{ base: 'md', md: 'lg' }} maxW="2xl">
             Call {siteConfig.businessName} directly or start an emergency quote. We cover Scotland
-            from our Glasgow base, 24 hours a day.
+            with a Scotland-wide mobile fleet, 24 hours a day.
           </Text>
           <Flex gap="3" wrap="wrap" justify="center">
             <GoldButton

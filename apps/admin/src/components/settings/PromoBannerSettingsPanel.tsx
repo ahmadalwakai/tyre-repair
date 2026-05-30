@@ -57,8 +57,8 @@ export function PromoBannerSettingsPanel(): React.JSX.Element {
             <Switch
               value={settings.enabled}
               onValueChange={(v) => setSettings({ ...settings, enabled: v })}
-              trackColor={{ false: '#2A2A33', true: '#A8851D' }}
-              thumbColor={settings.enabled ? '#D4AF37' : '#6B6B75'}
+              trackColor={{ false: '#2A2A33', true: '#8F0010' }}
+              thumbColor={settings.enabled ? '#E30613' : '#6B6B75'}
             />
           </View>
           <GoldInput

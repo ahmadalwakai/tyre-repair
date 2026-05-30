@@ -41,7 +41,7 @@ const TEST_TEMPLATES: Record<'booking' | 'stock' | 'pricing', TestTemplate> = {
   },
 };
 
-const DEFAULT_SOUND = process.env.ADMIN_NOTIFICATION_DEFAULT_SOUND ?? 'admin-alert.mp3';
+const DEFAULT_SOUND = process.env.ADMIN_NOTIFICATION_DEFAULT_SOUND ?? 'admin_alert.mp3';
 
 export async function POST(req: Request): Promise<NextResponse> {
   let admin;

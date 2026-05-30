@@ -18,3 +18,8 @@ apps/*/.env.*
 .DS_Store
 .vscode/
 .vercel
+# Android signing
+apps/admin/android/keystore.properties
+apps/admin/android/app/*.keystore
+apps/admin/android/app/*.jks
+

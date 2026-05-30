@@ -77,6 +77,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   const expectedReadyDate = expectedReadyDateLabel({
     isBackorder: result.isBackorder,
     backorderEtaWorkingDays: fees.backorderEtaWorkingDays,
+    sundaysOpen: fees.sundaysOpen,
   });
 
   const payload: TyreShopQuoteResponse = {

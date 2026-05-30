@@ -38,7 +38,7 @@ export interface AdminIconProps {
 export function AdminIcon({
   name,
   size = 22,
-  color = '#D4AF37',
+  color = '#E30613',
   strokeWidth = 1.75,
 }: AdminIconProps): React.JSX.Element {
   const common = {

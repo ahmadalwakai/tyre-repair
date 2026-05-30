@@ -33,9 +33,9 @@ export async function sendLocationEmailLink(
   ].join('\n');
 
   const html = `<!doctype html><html><body style="font-family:Inter,Arial,sans-serif;background:#0A0A0A;color:#FFFFFF;padding:24px">
-    <h2 style="color:#FFD700;margin:0 0 12px">Share your location with TyreRepair UK</h2>
+    <h2 style="color:#E30613;margin:0 0 12px">Share your location with TyreRepair UK</h2>
     <p>We need your location to price your emergency tyre callout.</p>
-    <p><a href="${input.link}" style="background:#D4AF37;color:#0A0A0A;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:600">Share my location</a></p>
+    <p><a href="${input.link}" style="background:#E30613;color:#0A0A0A;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:600">Share my location</a></p>
     <p style="color:#B8B8B8;font-size:13px">This link expires in ${input.expiresInMinutes} minutes.</p>
   </body></html>`;
 

@@ -13,8 +13,8 @@ interface TrustCard {
 const TRUST_CARDS: readonly TrustCard[] = [
   {
     id: 'glasgow-base',
-    title: 'Glasgow-based mobile tyre help',
-    copy: 'Real Glasgow base at Unit 1, 10 Gateside Street. Mobile cover across Scotland.',
+    title: 'Scotland-wide mobile tyre help',
+    copy: 'Mobile fleet of vans and drivers covering the whole of Scotland — we come to you, day or night.',
     icon: <FiMapPin />,
   },
   {
@@ -42,7 +42,9 @@ export function TestimonialsSection() {
     <SectionShell
       eyebrow="Why us"
       title="Why drivers call TyreRepair UK"
-      description="Real Glasgow base, real phone support, and an honest repair-first assessment."
+      description="Scotland-wide mobile fleet, real phone support, and an honest repair-first assessment."
+      backgroundImage="/images/sections/testimonials-tyre.jpg"
+      backgroundAlt="Close-up of a car tyre — honest repair-first assessment"
     >
       <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap={{ base: '4', md: '6' }}>
         {TRUST_CARDS.map((card, i) => (
@@ -53,8 +55,15 @@ export function TestimonialsSection() {
               p={{ base: '5', md: '6' }}
               borderRadius="lg"
               borderWidth="1px"
-              borderColor="border.subtle"
+              borderColor="accent.neon"
               bg="bg.surface"
+              boxShadow="0 0 0 1px rgba(240,24,37,0.35), 0 0 18px rgba(240,24,37,0.22), inset 0 0 10px rgba(240,24,37,0.06)"
+              transition="box-shadow 0.25s ease, transform 0.25s ease"
+              _hover={{
+                transform: 'translateY(-2px)',
+                boxShadow:
+                  '0 0 0 1px rgba(240,24,37,0.6), 0 0 28px rgba(240,24,37,0.55), inset 0 0 14px rgba(240,24,37,0.12)',
+              }}
             >
               <Box color="accent.neon" fontSize="2xl" aria-hidden>
                 {card.icon}

@@ -65,6 +65,7 @@ export default async function LocationPageRoute({ params }: PageProps) {
           region: page.region,
           pathname: `/locations/${page.slug}`,
           description: page.metaDescription,
+          slug: page.slug,
         })}
       />
       <BreadcrumbJsonLd items={breadcrumb} />

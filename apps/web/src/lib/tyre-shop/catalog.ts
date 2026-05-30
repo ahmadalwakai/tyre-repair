@@ -7,6 +7,16 @@
 import { db, schema, eq, and, asc, sql, inArray } from '@tyrerepair/db';
 import type { TyreShopFilters, TyreShopItem, TyreShopStockStatus } from '@/types/tyre-shop';
 
+// Only Budget + All-Season tyres are physically held at the depot for same/next-day
+// fitting. Everything else (Mid-range, Premium, Winter, Summer, Run-flat, Commercial)
+// is sourced on order regardless of any `stock` row quantity.
+export function isInstantStockTyre(
+  tier: string | null | undefined,
+  type: string | null | undefined,
+): boolean {
+  return tier === 'budget' && type === 'all_season';
+}
+
 function stockStatusFor(effective: number, low: number): TyreShopStockStatus {
   if (effective <= 0) return 'OUT_OF_STOCK';
   if (effective <= low) return 'LOW_STOCK';
@@ -44,6 +54,8 @@ export async function listTyreShopItems(
     conditions.push(
       sql`${schema.stock.quantityAvailable} - ${schema.stock.reservedQuantity} > 0`,
     );
+    conditions.push(eq(schema.tyreCatalog.tier, 'budget'));
+    conditions.push(eq(schema.tyreCatalog.type, 'all_season'));
   }
 
   const rows = await db
@@ -76,7 +88,9 @@ export async function listTyreShopItems(
     const qty = r.quantityAvailable ?? 0;
     const reserved = r.reservedQuantity ?? 0;
     const low = r.lowStockThreshold ?? 2;
-    const effective = Math.max(0, qty - reserved);
+    const rawEffective = Math.max(0, qty - reserved);
+    const instantEligible = isInstantStockTyre(r.tier, r.type);
+    const effective = instantEligible ? rawEffective : 0;
     return {
       id: r.id,
       sizeLabel: r.sizeLabel,
@@ -114,6 +128,8 @@ export async function loadTyreShopCatalogRow(
       sizeLabel: schema.tyreCatalog.sizeLabel,
       brand: schema.tyreCatalog.brand,
       model: schema.tyreCatalog.model,
+      tier: schema.tyreCatalog.tier,
+      type: schema.tyreCatalog.type,
       basePriceGbp: schema.tyreCatalog.basePriceGbp,
       isActive: schema.tyreCatalog.isActive,
       quantityAvailable: schema.stock.quantityAvailable,
@@ -128,13 +144,15 @@ export async function loadTyreShopCatalogRow(
   if (!r || !r.isActive) return null;
   const qty = r.quantityAvailable ?? 0;
   const reserved = r.reservedQuantity ?? 0;
+  const rawEffective = Math.max(0, qty - reserved);
+  const effective = isInstantStockTyre(r.tier, r.type) ? rawEffective : 0;
   return {
     id: r.id,
     sizeLabel: r.sizeLabel,
     brand: r.brand,
     model: r.model,
     basePriceGbp: Number(r.basePriceGbp),
-    effectiveStock: Math.max(0, qty - reserved),
+    effectiveStock: effective,
     lowStockThreshold: r.lowStockThreshold ?? 2,
   };
 }

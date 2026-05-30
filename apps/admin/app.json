@@ -2,7 +2,7 @@
   "expo": {
     "name": "TyreRepair Admin",
     "slug": "tyrerepair-admin",
-    "version": "0.1.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "scheme": "tyrerepairadmin",
     "userInterfaceStyle": "automatic",
@@ -10,12 +10,19 @@
     "icon": "./assets/images/icon.png",
     "android": {
       "package": "uk.tyrerepair.admin",
-      "versionCode": 1,
+      "versionCode": 3,
       "edgeToEdgeEnabled": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#0B0B0F"
-      }
+        "backgroundColor": "#E30613"
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION"
+      ]
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -26,11 +33,21 @@
       [
         "expo-notifications",
         {
-          "color": "#D4AF37",
+          "color": "#E30613",
           "defaultChannel": "admin-alerts",
           "sounds": [
-            "./assets/sounds/admin-alert.mp3"
+            "./assets/sounds/admin_alert.mp3"
           ]
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow TyreRepair Admin to use your location to alert you when arriving at customer sites.",
+          "locationAlwaysPermission": "Allow TyreRepair Admin to monitor booking sites in the background for arrival alerts.",
+          "locationWhenInUsePermission": "Allow TyreRepair Admin to use your location while you are on a job.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isIosBackgroundLocationEnabled": true
         }
       ]
     ],
@@ -38,13 +55,14 @@
       "typedRoutes": true
     },
     "notification": {
-      "color": "#D4AF37",
+      "color": "#E30613",
       "androidMode": "default"
     },
     "extra": {
       "eas": {
-        "projectId": ""
+        "projectId": "a1c9950c-6cef-467b-97b4-353b44be92ed"
       }
-    }
+    },
+    "owner": "ahmadawadalwakai"
   }
 }

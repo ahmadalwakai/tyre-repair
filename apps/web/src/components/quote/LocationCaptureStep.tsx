@@ -20,7 +20,7 @@ export interface LocationCaptureStepProps {
 
 interface CoverageResponse {
   covered: boolean;
-  area?: 'glasgow' | 'edinburgh' | null;
+  area?: string | null;
   normalizedPostcode?: string;
   error?: string;
   code?: string;
@@ -137,8 +137,8 @@ export function LocationCaptureStep({ initial, onContinue }: LocationCaptureStep
         </LocationMethodCard>
 
         <LocationMethodCard
-          title="Enter address manually"
-          description="Type the address or postcode where you need us to come."
+          title="Search for an address"
+          description="Start typing and pick your address from the suggestions."
         >
           {(() => {
             const initAddr =

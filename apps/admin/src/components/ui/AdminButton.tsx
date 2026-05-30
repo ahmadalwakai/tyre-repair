@@ -46,7 +46,7 @@ const VARIANT_STYLES: Record<AdminButtonVariant, VariantStyle> = {
     // Dark surface with gold border + gold text. Calm but visible.
     container: 'bg-surface border border-gold/60',
     text: 'text-gold',
-    spinner: '#D4AF37',
+    spinner: '#E30613',
   },
   ghost: {
     // Truly subtle — no border, no fill. Used for Cancel / Dismiss.

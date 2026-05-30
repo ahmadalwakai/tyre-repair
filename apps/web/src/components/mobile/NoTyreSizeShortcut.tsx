@@ -34,7 +34,7 @@ export function NoTyreSizeShortcut() {
             padding: '8px 14px',
             borderRadius: '999px',
             border: '1px solid rgba(212,175,55,0.5)',
-            color: '#FFD700',
+            color: '#E30613',
             fontSize: '0.85rem',
             fontWeight: 600,
             display: 'inline-flex',

@@ -1,17 +1,23 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, FlatList, Linking, RefreshControl, Text, View } from 'react-native';
+import React from 'react';
+import { Alert, Linking, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { FlashList } from '@shopify/flash-list';
 import { AppShell, ScreenHeader } from '@/components/layout/AppShell';
 import { GoldCard } from '@/components/ui/GoldCard';
 import { GoldButton } from '@/components/ui/GoldButton';
-import { AnimatedCard } from '@/components/ui/AnimatedCard';
-import { SkeletonCardList } from '@/components/ui/Skeleton';
+import { AnimatedListItem } from '@/components/ui/AnimatedListItem';
+import { ActionRowSkeletonList } from '@/components/ui/Skeleton';
 import { EmptyState, ErrorState } from '@/components/ui/States';
+import { UrgentPulse } from '@/components/ui/UrgentPulse';
 import { OfflineBanner } from '@/components/system/OfflineBanner';
 import { getActionQueue } from '@/lib/api/action-queue';
 import { acknowledgeCallClick } from '@/lib/api/call-click-events';
 import { cancelPendingBooking, sendRecoverySms } from '@/lib/api/booking-recovery';
 import { useToast } from '@/components/ui/Toast';
+import { qk } from '@/lib/query/keys';
+import { useRefresh } from '@/hooks/useRefresh';
+import { useAcknowledgeCallClick } from '@/lib/query/useAcknowledgeCallClick';
 import {
   actionKindLabel,
   formatUkPhoneForDisplay,
@@ -29,6 +35,7 @@ interface ActionRowProps {
 
 function ActionRow({ item, onHandled }: ActionRowProps): React.JSX.Element {
   const toast = useToast();
+  const ackCallClick = useAcknowledgeCallClick();
   const isRecheck = item.kind === 'smart_recheck';
   const isEmergency = item.kind === 'emergency_assist_started';
   const isCallClick = item.kind === 'website_call_clicked';
@@ -58,11 +65,10 @@ function ActionRow({ item, onHandled }: ActionRowProps): React.JSX.Element {
 
   const dismissCallClick = (): void => {
     if (!isCallClick || !item.callClickEventId) return;
-    void acknowledgeCallClick(item.callClickEventId, 'DISMISSED')
-      .catch(() => {
-        // best effort
-      })
-      .finally(onHandled);
+    ackCallClick.mutate(
+      { callClickEventId: item.callClickEventId, action: 'DISMISSED', itemId: item.id },
+      { onSettled: onHandled },
+    );
   };
 
   const callCustomerFromCallClick = (): void => {
@@ -374,27 +380,16 @@ function ActionRow({ item, onHandled }: ActionRowProps): React.JSX.Element {
 }
 
 export default function ActionQueueScreen(): React.JSX.Element {
-  const [data, setData] = useState<ActionQueueResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      const res = await getActionQueue();
-      setData(res);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Could not load action queue');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const query = useQuery({
+    queryKey: qk.actionQueue(),
+    queryFn: () => getActionQueue(),
+    refetchInterval: 30_000,
+  });
+  const data = query.data ?? null;
+  const { refreshControl } = useRefresh(() => query.refetch());
+  const reload = (): void => {
+    void query.refetch();
+  };
 
   const subtitle = data
     ? `${data.counts.danger} danger · ${data.counts.warning} warning · ${data.counts.info} info`
@@ -404,39 +399,43 @@ export default function ActionQueueScreen(): React.JSX.Element {
     <AppShell>
       <OfflineBanner />
       <ScreenHeader title="Action queue" subtitle={subtitle} />
-      {loading ? (
-        <SkeletonCardList count={4} />
-      ) : error ? (
-        <ErrorState message={error} onRetry={load} />
+      {query.isLoading ? (
+        <ActionRowSkeletonList count={4} />
+      ) : query.isError ? (
+        <ErrorState
+          message={query.error instanceof Error ? query.error.message : 'Could not load action queue'}
+          onRetry={reload}
+        />
       ) : !data || data.items.length === 0 ? (
         <>
           <PricingReviewSection />
           <EmptyState
-            message="No urgent actions right now."
-            action={{ label: 'Refresh', onPress: load, variant: 'secondary' }}
+            illustration="success"
+            title="All clear"
+            message="No urgent actions right now. Pull to refresh — new items will appear here the moment they arrive."
+            action={{ label: 'Refresh', onPress: reload, variant: 'secondary' }}
           />
         </>
       ) : (
-        <FlatList
+        <FlashList
           data={data.items}
           keyExtractor={(i) => i.id}
           ListHeaderComponent={<PricingReviewSection />}
-          renderItem={({ item, index }) => (
-            <AnimatedCard delay={Math.min(index, 5) * 30} disabled={index > 8}>
-              <ActionRow item={item} onHandled={load} />
-            </AnimatedCard>
-          )}
+          renderItem={({ item, index }) => {
+            const urgent =
+              item.severity === 'DANGER' ||
+              item.kind === 'emergency_assist_started' ||
+              item.kind === 'booking_abandoned';
+            return (
+              <AnimatedListItem index={index} disabled={index > 8}>
+                <UrgentPulse active={urgent} color={item.severity === 'DANGER' ? '#E30613' : '#D4AF37'}>
+                  <ActionRow item={item} onHandled={reload} />
+                </UrgentPulse>
+              </AnimatedListItem>
+            );
+          }}
           contentContainerStyle={{ padding: 12 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                void load();
-              }}
-              tintColor="#D4AF37"
-            />
-          }
+          refreshControl={refreshControl}
         />
       )}
     </AppShell>

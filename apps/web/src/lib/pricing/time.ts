@@ -15,16 +15,47 @@ function getLondonHour(date: Date): number {
   return Number.isFinite(hour) ? hour % 24 : 0;
 }
 
+export interface TimeBandHours {
+  /** Inclusive hour 0–23 when peak morning band starts. */
+  peakStart: number;
+  /** Exclusive hour 0–23 when peak morning band ends. */
+  peakEnd: number;
+  /** Inclusive hour 0–23 when night band starts. */
+  nightStart: number;
+  /** Exclusive hour 0–23 when night band ends. Wraps past midnight. */
+  nightEnd: number;
+}
+
+const DEFAULT_HOURS: TimeBandHours = {
+  peakStart: 7,
+  peakEnd: 9,
+  nightStart: 22,
+  nightEnd: 6,
+};
+
+function inBand(hour: number, start: number, end: number): boolean {
+  if (start === end) return false;
+  return start < end ? hour >= start && hour < end : hour >= start || hour < end;
+}
+
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : String(n);
+}
+
 export function calculateTimeFactor(
   rules: PricingRuleMap,
   now: Date = new Date(),
+  hours: TimeBandHours = DEFAULT_HOURS,
 ): TimePricingFactor {
   const hour = getLondonHour(now);
   const nightMul = getPricingRuleNumber(rules, 'time_night', 1.35);
   const peakMul = getPricingRuleNumber(rules, 'time_peak_morning', 1.15);
 
-  const isNight = hour >= 22 || hour < 6;
-  const isPeak = hour >= 7 && hour < 9;
+  const isNight = inBand(hour, hours.nightStart, hours.nightEnd);
+  const isPeak = inBand(hour, hours.peakStart, hours.peakEnd);
+
+  const nightLabel = `${pad2(hours.nightStart)}:00–${pad2(hours.nightEnd)}:00`;
+  const peakLabel = `${pad2(hours.peakStart)}:00–${pad2(hours.peakEnd)}:00`;
 
   if (isNight && isPeak) {
     const mul = Math.max(nightMul, peakMul);
@@ -40,7 +71,7 @@ export function calculateTimeFactor(
       band: 'night',
       hourLondon: hour,
       multiplier: nightMul,
-      reason: 'Night-time emergency surge (22:00–06:00)',
+      reason: `Night-time emergency surge (${nightLabel})`,
     };
   }
   if (isPeak) {
@@ -48,7 +79,7 @@ export function calculateTimeFactor(
       band: 'peak_morning',
       hourLondon: hour,
       multiplier: peakMul,
-      reason: 'Peak morning demand (07:00–09:00)',
+      reason: `Peak morning demand (${peakLabel})`,
     };
   }
   return {

@@ -55,7 +55,7 @@ export function LocationHero({ city, region, title, intro, primaryKeywords }: Lo
       <Container maxW="5xl">
         <Stack gap="4" align="flex-start">
           <Text color="accent.neon" fontSize="xs" textTransform="uppercase" letterSpacing="0.18em">
-            {region} · Mobile cover from Glasgow
+            {region} · Scotland-wide mobile cover
           </Text>
           <Heading as="h1" fontFamily="heading" fontSize={{ base: '3xl', md: '5xl' }} lineHeight="1.1" color="fg.default">
             {title}

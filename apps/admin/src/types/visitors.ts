@@ -4,6 +4,8 @@ export interface LiveVisitor {
   approxCity: string | null;
   approxRegion: string | null;
   approxCountry: string | null;
+  latitude: number | null;
+  longitude: number | null;
   consentGiven: boolean;
   lastSeenAt: string;
 }

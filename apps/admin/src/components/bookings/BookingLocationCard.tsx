@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Image, Linking, Text, View } from 'react-native';
 import { GoldCard } from '@/components/ui/GoldCard';
 import { GoldButton } from '@/components/ui/GoldButton';
+import { AnimatedBorder } from '@/components/ui/AnimatedBorder';
+import { InteractiveMapView } from '@/components/maps/InteractiveMapView';
 import { getMapboxLocation } from '@/lib/api/mapbox-location';
+import { shareLiveEtaLink } from '@/lib/eta/live-eta-link';
 import type { MapboxLocationResponse } from '@/types/command-center';
 import { ApiError } from '@/lib/api/client';
 
@@ -70,12 +73,42 @@ export function BookingLocationCard({ bookingId }: { bookingId: string }): React
         </Text>
       ) : null}
 
-      {data.mapPreviewUrl ? (
-        <Image
-          source={{ uri: data.mapPreviewUrl }}
-          style={{ width: '100%', height: 160, borderRadius: 8, marginTop: 12 }}
-          resizeMode="cover"
-        />
+      {data.coordinates ? (
+        <View style={{ marginTop: 12 }}>
+          <InteractiveMapView
+            pins={[
+              {
+                id: data.bookingId,
+                latitude: data.coordinates.lat,
+                longitude: data.coordinates.lng,
+                title: data.addressLabel ?? 'Customer',
+              },
+            ]}
+            height={320}
+          />
+        </View>
+      ) : data.mapPreviewUrl ? (
+        <AnimatedBorder
+          radius={8}
+          strokeWidth={2}
+          color="#F01825"
+          segmentLength={110}
+          durationMs={2400}
+          style={{
+            width: '100%',
+            height: 320,
+            borderRadius: 8,
+            overflow: 'hidden',
+            marginTop: 12,
+            position: 'relative',
+          }}
+        >
+          <Image
+            source={{ uri: data.mapPreviewUrl }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+          />
+        </AnimatedBorder>
       ) : null}
 
       {data.warningMessage ? (
@@ -101,6 +134,13 @@ export function BookingLocationCard({ bookingId }: { bookingId: string }): React
             }}
           />
         ) : null}
+        <GoldButton
+          label="Share live ETA link"
+          variant="secondary"
+          onPress={() => {
+            void shareLiveEtaLink(data.bookingId);
+          }}
+        />
       </View>
     </GoldCard>
   );

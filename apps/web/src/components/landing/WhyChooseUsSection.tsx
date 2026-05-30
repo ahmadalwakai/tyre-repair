@@ -64,6 +64,8 @@ export function WhyChooseUsSection() {
       eyebrow="Why us"
       title="Built for urgent tyre problems"
       description="Platform capabilities tuned for emergencies, not scheduled fitting."
+      backgroundImage="/images/sections/whychoose-moody-tyre.jpg"
+      backgroundAlt="Moody close-up of a car tyre at night"
     >
       <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} gap={{ base: '4', md: '6' }}>
         {FEATURES.map((f, i) => (
@@ -74,10 +76,16 @@ export function WhyChooseUsSection() {
               p={{ base: '5', md: '6' }}
               borderRadius="lg"
               borderWidth="1px"
-              borderColor="border.subtle"
+              borderColor="accent.neon"
               bg="bg.surface"
-              transition="border-color 0.2s, transform 0.2s"
-              _hover={{ borderColor: 'border.gold', transform: 'translateY(-2px)' }}
+              boxShadow="0 0 0 1px rgba(240,24,37,0.35), 0 0 18px rgba(240,24,37,0.22), inset 0 0 10px rgba(240,24,37,0.06)"
+              transition="border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease"
+              _hover={{
+                borderColor: 'accent.neon',
+                transform: 'translateY(-2px)',
+                boxShadow:
+                  '0 0 0 1px rgba(240,24,37,0.6), 0 0 28px rgba(240,24,37,0.55), inset 0 0 14px rgba(240,24,37,0.12)',
+              }}
             >
               <Box color="accent.neon" fontSize="2xl" aria-hidden>
                 {f.icon}

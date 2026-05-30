@@ -14,6 +14,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollView, View, Text, Pressable, Linking, ActivityIndicator, Share, Alert } from 'react-native';
+import { copyToClipboard } from '@/lib/clipboard';
 import { router } from 'expo-router';
 import { AppShell, ScreenHeader } from '@/components/layout/AppShell';
 import { AdminButton } from '@/components/ui/AdminButton';
@@ -117,6 +118,9 @@ export function QuickBookingWizard(props: QuickProps): React.JSX.Element {
   const [priceLoading, setPriceLoading] = useState(false);
   const [priceError, setPriceError] = useState<string | null>(null);
   const [showBreakdown, setShowBreakdown] = useState(false);
+  // Admin manual price edit. When set, this overrides the engine/learned
+  // suggested total. Cleared whenever the live quote is refreshed.
+  const [priceOverrideGbp, setPriceOverrideGbp] = useState<string | null>(null);
 
   // Customer & payment
   const [customerPhone, setCustomerPhone] = useState('');
@@ -336,6 +340,9 @@ export function QuickBookingWizard(props: QuickProps): React.JSX.Element {
       body.manualLocation = ml;
       const res = await fetchQuickPriceQuote(body);
       setPriceQuote(res);
+      // Refreshing the quote always clears any prior manual edit so the
+      // admin sees the new engine/learned suggestion as the starting point.
+      setPriceOverrideGbp(null);
     } catch (e) {
       setPriceError(e instanceof ApiError ? e.message : 'Could not calculate price');
       setPriceQuote(null);
@@ -372,11 +379,11 @@ export function QuickBookingWizard(props: QuickProps): React.JSX.Element {
       return { ok: true };
     }
     if (step === 4) {
-      if (customerPhone.trim().length < 7) {
-        return { ok: false, reason: 'Customer phone is required.' };
-      }
-      if (paymentMode === 'CASH' && !cashTermsConfirmed) {
-        return { ok: false, reason: 'Confirm cash payment terms with the customer.' };
+      // Emergency-first: admin can always submit on step 4. Phone, name,
+      // email, and cash-terms checkbox are all optional. The only hard
+      // requirement is a phone for card/deposit (Stripe needs an SMS target).
+      if (paymentMode !== 'CASH' && customerPhone.trim().length < 7) {
+        return { ok: false, reason: 'Phone is required for card / deposit payments.' };
       }
       return { ok: true };
     }
@@ -420,10 +427,6 @@ export function QuickBookingWizard(props: QuickProps): React.JSX.Element {
   // -------- Submit (final create on step 4) --------
   const submit = useCallback(async (): Promise<void> => {
     setError(null);
-    if (!customerPhone.trim()) {
-      setError('Customer phone is required.');
-      return;
-    }
     setSubmitting(true);
     try {
       const richNote = buildStructuredNote({
@@ -443,7 +446,6 @@ export function QuickBookingWizard(props: QuickProps): React.JSX.Element {
         routeIntel,
       });
       const payload: QuickBookingInput = {
-        customerPhone: customerPhone.trim(),
         jobType,
         problemType,
         lockingWheelNutStatus:
@@ -451,6 +453,7 @@ export function QuickBookingWizard(props: QuickProps): React.JSX.Element {
         source: props.prefill?.source ?? 'ADMIN_QUICK_BOOKING',
         paymentMode,
       };
+      if (customerPhone.trim()) payload.customerPhone = customerPhone.trim();
       if (customerName.trim()) payload.customerName = customerName.trim();
       if (customerEmail.trim()) payload.customerEmail = customerEmail.trim();
       if (locationLabel.trim()) payload.locationLabel = locationLabel.trim();
@@ -458,15 +461,44 @@ export function QuickBookingWizard(props: QuickProps): React.JSX.Element {
       if (longitude != null) payload.longitude = longitude;
       if (richNote) payload.internalNote = richNote;
       // Snapshot the live price total so the backend can compute the deposit
-      // / balance amounts and prepare a Stripe Payment Element URL.
-      if (paymentMode !== 'CASH' && priceQuote?.pricing.totalPriceGbp) {
-        payload.totalPriceGbp = priceQuote.pricing.totalPriceGbp;
+      // / balance amounts and prepare a Stripe Payment Element URL. We send
+      // the admin-edited override (if any) as the booking total, and the
+      // original engine value so the backend can record the learning sample.
+      const engineTotalGbp = priceQuote?.engineTotalPriceGbp ?? priceQuote?.pricing.totalPriceGbp;
+      const overrideNum = priceOverrideGbp ? Number(priceOverrideGbp) : null;
+      const overrideValid = overrideNum != null && Number.isFinite(overrideNum) && overrideNum > 0;
+      const effectiveTotalGbp = overrideValid
+        ? overrideNum.toFixed(2)
+        : priceQuote?.pricing.totalPriceGbp ?? null;
+      const wasOverridden =
+        overrideValid && engineTotalGbp != null && Number(engineTotalGbp).toFixed(2) !== overrideNum.toFixed(2);
+
+      if (paymentMode !== 'CASH' && effectiveTotalGbp) {
+        payload.totalPriceGbp = effectiveTotalGbp;
+      } else if (effectiveTotalGbp) {
+        // CASH: still send so the backend can record the learning sample.
+        payload.totalPriceGbp = effectiveTotalGbp;
+      }
+      if (engineTotalGbp) {
+        payload.engineTotalPriceGbp = Number(engineTotalGbp).toFixed(2);
+      }
+      if (wasOverridden) payload.priceOverridden = true;
+      const milesFromQuote =
+        (priceQuote?.pricing.breakdown as { distance?: { distanceMiles?: number | null } } | undefined)
+          ?.distance?.distanceMiles ?? null;
+      if (milesFromQuote != null && Number.isFinite(milesFromQuote)) {
+        payload.distanceMiles = milesFromQuote;
+      }
+      if (selectedStock?.tyreId) {
+        // Use a type assertion since QuickBookingInput.tyreId existed before
+        // and the backend now uses it for the override record too.
+        (payload as { tyreId?: string }).tyreId = selectedStock.tyreId;
       }
       const res = await createQuickBooking(payload);
       setSuccess(res);
       void clearQuickBookingDraft();
       void playSound('payment_received', { volume: 0.5 });
-      toast.show(`Booking created · ${res.trackingId}`, 'success');
+      toast.celebrate(`Booking created · ${res.trackingId}`);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Could not create booking');
       toast.show('Could not create booking', 'error');
@@ -491,6 +523,7 @@ export function QuickBookingWizard(props: QuickProps): React.JSX.Element {
     paymentMode,
     balanceMethod,
     priceQuote,
+    priceOverrideGbp,
     readiness,
     routeIntel,
     props.prefill?.source,
@@ -541,12 +574,58 @@ export function QuickBookingWizard(props: QuickProps): React.JSX.Element {
     }
   }, [success, toast]);
 
-  const copyDispatchSummary = useCallback(async (): Promise<void> => {
-    if (!success) return;
+  const copyBookingDetails = useCallback(async (): Promise<void> => {
+    const totalGbp = priceQuote ? Number(priceQuote.pricing.totalPriceGbp) : null;
+    const depositGbp =
+      success?.depositAmountGbp != null
+        ? Number(success.depositAmountGbp)
+        : totalGbp != null && paymentMode === 'DEPOSIT'
+          ? Math.round(totalGbp * 0.15 * 100) / 100
+          : null;
+    const balanceGbp =
+      success?.balanceDueGbp != null
+        ? Number(success.balanceDueGbp)
+        : totalGbp != null
+          ? paymentMode === 'FULL'
+            ? 0
+            : paymentMode === 'DEPOSIT' && depositGbp != null
+              ? Math.round((totalGbp - depositGbp) * 100) / 100
+              : totalGbp
+          : null;
+
+    // Paid vs unpaid. Pre-creation nothing is taken yet. Post-creation only
+    // FULL is paid in full; DEPOSIT is paid only if the admin opened the
+    // payment URL — we can't confirm that from JS so we report it as pending.
+    let paidStatus: string;
+    if (!success) {
+      paidStatus = 'Not paid yet (booking not created)';
+    } else if (paymentMode === 'FULL') {
+      paidStatus = 'PAID IN FULL (card)';
+    } else if (paymentMode === 'DEPOSIT') {
+      paidStatus =
+        depositGbp != null
+          ? `Deposit £${depositGbp.toFixed(2)} pending — take on card`
+          : 'Deposit pending';
+    } else {
+      paidStatus = 'Unpaid · cash on site';
+    }
+
+    const driverCollects =
+      balanceGbp != null ? `£${balanceGbp.toFixed(2)}` : 'TBC';
+    const driverMethod =
+      paymentMode === 'CASH'
+        ? 'cash'
+        : paymentMode === 'DEPOSIT'
+          ? 'card or cash (balance)'
+          : 'nothing — already paid';
+
     const lines = [
-      `TyreRepair UK · ${success.trackingId}`,
-      `Phone: ${customerPhone}`,
+      success
+        ? `TyreRepair UK · Booking ${success.trackingId}`
+        : 'TyreRepair UK · Draft booking (not yet created)',
+      `Phone: ${customerPhone || '—'}`,
       customerName ? `Name: ${customerName}` : null,
+      customerEmail ? `Email: ${customerEmail}` : null,
       `Job: ${jobType}${problemType !== 'NOT_SURE' ? ` (${problemType})` : ''}`,
       tyreSize ? `Tyre: ${tyreSize}` : null,
       `Locking nut: ${lockingNut}`,
@@ -557,20 +636,28 @@ export function QuickBookingWizard(props: QuickProps): React.JSX.Element {
       routeIntel?.distanceMiles != null
         ? `Distance: ${routeIntel.distanceMiles.toFixed(1)} mi · drive ${Math.round(routeIntel.durationMinutes ?? 0)} min`
         : null,
-      `Payment: ${paymentMode}`,
-      priceQuote
-        ? `Total: £${priceQuote.pricing.totalPriceGbp}${jobType === 'ASSESSMENT' ? ' (assessment)' : ''}`
-        : null,
-    ].filter((s): s is string => Boolean(s));
-    try {
-      await Share.share({ message: lines.join('\n') });
-    } catch {
-      /* user cancelled */
+      '',
+      '— Payment —',
+      `Method: ${paymentMode}`,
+      totalGbp != null
+        ? `Total: £${totalGbp.toFixed(2)}${jobType === 'ASSESSMENT' ? ' (assessment)' : ''}`
+        : 'Total: TBC',
+      depositGbp != null ? `Deposit (15%): £${depositGbp.toFixed(2)}` : null,
+      `Status: ${paidStatus}`,
+      `Driver collects: ${driverCollects} (${driverMethod})`,
+      internalNote ? `\nNote: ${internalNote}` : null,
+    ].filter((s): s is string => s !== null);
+    const ok = await copyToClipboard(lines.join('\n'));
+    if (ok) {
+      toast.success('Booking details copied');
+    } else {
+      toast.error('Copy failed');
     }
   }, [
     success,
     customerPhone,
     customerName,
+    customerEmail,
     jobType,
     problemType,
     tyreSize,
@@ -581,6 +668,7 @@ export function QuickBookingWizard(props: QuickProps): React.JSX.Element {
     routeIntel,
     paymentMode,
     priceQuote,
+    internalNote,
     toast,
   ]);
 
@@ -605,6 +693,7 @@ export function QuickBookingWizard(props: QuickProps): React.JSX.Element {
     setLockingNut('STANDARD_ONLY');
     setPriceQuote(null);
     setShowBreakdown(false);
+    setPriceOverrideGbp(null);
     setCustomerPhone('');
     setCustomerName('');
     setCustomerEmail('');
@@ -672,10 +761,10 @@ export function QuickBookingWizard(props: QuickProps): React.JSX.Element {
                 onPress={() => void sendLocationLink()}
               />
               <AdminButton
-                label="Share dispatch summary"
+                label="Copy booking details"
                 variant="ghost"
                 size="md"
-                onPress={() => void copyDispatchSummary()}
+                onPress={() => void copyBookingDetails()}
               />
               {routeIntel?.externalNavigationUrl ? (
                 <AdminButton
@@ -704,21 +793,18 @@ export function QuickBookingWizard(props: QuickProps): React.JSX.Element {
             </Text>
             <View className="mt-2">
               <AdminButton
-                label="Share SMS"
+                label="Copy SMS"
                 variant="secondary"
                 size="sm"
                 onPress={async (): Promise<void> => {
-                  try {
-                    await Share.share({
-                      message: composeTrackingSmsTemplate({
-                        trackingId: success.trackingId,
-                        jobType,
-                        paymentMode,
-                      }),
-                    });
-                  } catch {
-                    /* */
-                  }
+                  const msg = composeTrackingSmsTemplate({
+                    trackingId: success.trackingId,
+                    jobType,
+                    paymentMode,
+                  });
+                  const ok = await copyToClipboard(msg);
+                  if (ok) toast.success('SMS copied');
+                  else toast.error('Copy failed');
                 }}
               />
             </View>
@@ -813,6 +899,8 @@ export function QuickBookingWizard(props: QuickProps): React.JSX.Element {
             refresh={() => void refreshPriceQuote()}
             paymentMode={paymentMode}
             setPaymentMode={setPaymentMode}
+            priceOverrideGbp={priceOverrideGbp}
+            setPriceOverrideGbp={setPriceOverrideGbp}
           />
         ) : null}
 
@@ -839,6 +927,17 @@ export function QuickBookingWizard(props: QuickProps): React.JSX.Element {
         ) : null}
 
         {error ? <Text className="text-danger text-sm">{error}</Text> : null}
+
+        {/* Copy current booking details — works mid-wizard too, so the
+            admin can paste into chat/SMS before completion. */}
+        <View className="mt-2">
+          <AdminButton
+            label="Copy booking details"
+            variant="ghost"
+            size="sm"
+            onPress={() => void copyBookingDetails()}
+          />
+        </View>
 
         {/* Step navigation */}
         <View className="flex-row gap-2 mt-2">
@@ -978,6 +1077,14 @@ function Step1Location(p: Step1Props): React.JSX.Element {
         customerPhone={p.customerPhone}
         customerEmail={p.customerEmail}
         customerName={p.customerName}
+        onLocationReceived={(loc) => {
+          p.setCoords(loc.latitude, loc.longitude);
+          if (!p.locationLabel.trim()) {
+            p.setLocationLabel(
+              `Customer GPS · ${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)}`,
+            );
+          }
+        }}
       />
 
       <RouteIntelCard
@@ -1132,10 +1239,43 @@ interface Step3Props {
   refresh: () => void;
   paymentMode: PaymentMode;
   setPaymentMode: (m: PaymentMode) => void;
+  priceOverrideGbp: string | null;
+  setPriceOverrideGbp: (v: string | null) => void;
 }
 
 function Step3Price(p: Step3Props): React.JSX.Element {
   const explain = explainPrice(p.jobType, p.problemType);
+  const [editingPrice, setEditingPrice] = React.useState(false);
+  const [priceDraft, setPriceDraft] = React.useState('');
+
+  const engineTotal = p.quote?.engineTotalPriceGbp ?? p.quote?.pricing.totalPriceGbp ?? null;
+  const suggestedTotal = p.quote?.pricing.totalPriceGbp ?? null;
+  const displayedTotal = p.priceOverrideGbp ?? suggestedTotal ?? '';
+  const learned = p.quote?.learnedAdjustment ?? null;
+  const isOverridden =
+    p.priceOverrideGbp != null &&
+    engineTotal != null &&
+    Number(p.priceOverrideGbp).toFixed(2) !== Number(engineTotal).toFixed(2);
+
+  const beginEdit = (): void => {
+    setPriceDraft(displayedTotal || '');
+    setEditingPrice(true);
+  };
+  const commitEdit = (): void => {
+    const trimmed = priceDraft.trim();
+    const n = Number(trimmed);
+    if (!Number.isFinite(n) || n <= 0) {
+      setEditingPrice(false);
+      return;
+    }
+    p.setPriceOverrideGbp(n.toFixed(2));
+    setEditingPrice(false);
+  };
+  const resetOverride = (): void => {
+    p.setPriceOverrideGbp(null);
+    setEditingPrice(false);
+  };
+
   return (
     <>
       <GoldCard title="Price quote" icon="£" eyebrow="Step 3">
@@ -1148,12 +1288,60 @@ function Step3Price(p: Step3Props): React.JSX.Element {
           <Text className="text-danger text-sm">{p.error}</Text>
         ) : p.quote ? (
           <View>
-            <View className="flex-row items-baseline gap-2">
-              <Text className="text-text text-3xl font-bold">£{p.quote.pricing.totalPriceGbp}</Text>
-              <Text className="text-text-muted text-xs">
-                {p.jobType === 'ASSESSMENT' ? 'assessment fee' : 'all-in price'}
+            {editingPrice ? (
+              <View className="gap-2">
+                <Text className="text-text-muted text-xs">Edit total (£)</Text>
+                <GoldInput
+                  value={priceDraft}
+                  onChangeText={setPriceDraft}
+                  keyboardType="decimal-pad"
+                  autoFocus
+                  onBlur={commitEdit}
+                  onSubmitEditing={commitEdit}
+                />
+                <View className="flex-row gap-2">
+                  <AdminButton label="Save" variant="primary" size="sm" onPress={commitEdit} />
+                  <AdminButton
+                    label="Cancel"
+                    variant="ghost"
+                    size="sm"
+                    onPress={() => setEditingPrice(false)}
+                  />
+                </View>
+              </View>
+            ) : (
+              <Pressable onPress={beginEdit} hitSlop={8}>
+                <View className="flex-row items-baseline gap-2">
+                  <Text className="text-text text-3xl font-bold">
+                    £{Number(displayedTotal || 0).toFixed(2)}
+                  </Text>
+                  <Text className="text-text-muted text-xs">
+                    {p.jobType === 'ASSESSMENT' ? 'assessment fee' : 'all-in price'}
+                  </Text>
+                  <Text className="text-gold text-[11px] ml-1">Tap to edit</Text>
+                </View>
+              </Pressable>
+            )}
+
+            {/* Suggested-by-engine + learned-adjustment hints */}
+            {!editingPrice && isOverridden && engineTotal ? (
+              <View className="mt-1 flex-row items-center gap-2">
+                <Text className="text-text-muted text-[11px]">
+                  Edited from £{Number(engineTotal).toFixed(2)}
+                </Text>
+                <Pressable onPress={resetOverride} hitSlop={6}>
+                  <Text className="text-gold text-[11px] font-semibold">Reset</Text>
+                </Pressable>
+              </View>
+            ) : null}
+            {!editingPrice && learned ? (
+              <Text className="text-text-muted text-[11px] mt-1">
+                AI suggestion · {learned.multiplier >= 1 ? '+' : ''}
+                {((learned.multiplier - 1) * 100).toFixed(1)}% from engine
+                {' '}· based on {learned.sampleSize} admin edits (last {learned.windowDays}d)
               </Text>
-            </View>
+            ) : null}
+
             <View className="flex-row gap-2 mt-3">
               <AdminButton label="Refresh" variant="secondary" size="md" onPress={p.refresh} />
               <AdminButton
@@ -1162,6 +1350,9 @@ function Step3Price(p: Step3Props): React.JSX.Element {
                 size="md"
                 onPress={() => p.setShowBreakdown(!p.showBreakdown)}
               />
+              {!editingPrice ? (
+                <AdminButton label="Edit price" variant="ghost" size="md" onPress={beginEdit} />
+              ) : null}
             </View>
             {p.showBreakdown ? (
               <View className="mt-4 pt-3 border-t border-border gap-2">
@@ -1171,7 +1362,13 @@ function Step3Price(p: Step3Props): React.JSX.Element {
                 ) : null}
                 <PriceLine label="Distance fee" value={p.quote.pricing.distanceFeeGbp} />
                 <View className="h-px bg-border my-1" />
-                <PriceLine label="Total" value={p.quote.pricing.totalPriceGbp} />
+                {engineTotal ? (
+                  <PriceLine label="Engine total" value={Number(engineTotal).toFixed(2)} />
+                ) : null}
+                <PriceLine
+                  label={isOverridden ? 'Admin total' : 'Total'}
+                  value={Number(displayedTotal || 0).toFixed(2)}
+                />
                 {p.quote.pricing.breakdown?.notes &&
                 p.quote.pricing.breakdown.notes.length > 0 ? (
                   <View className="mt-2 px-3 py-2 rounded-md bg-surfaceMuted">
@@ -1315,7 +1512,7 @@ function Step4CustomerPayment(p: Step4Props): React.JSX.Element {
       <GoldCard title="Customer" icon="👤" eyebrow="Step 4">
         <View className="gap-3">
           <GoldInput
-            label="Phone (required)"
+            label="Phone (recommended — leave blank for emergency)"
             value={p.customerPhone}
             onChangeText={p.setCustomerPhone}
             keyboardType="phone-pad"
@@ -1491,6 +1688,7 @@ function RouteIntelCard(props: {
   onRefresh: () => void;
   jobType: JobType;
 }): React.JSX.Element | null {
+  const toast = useToast();
   if (!props.intel && !props.loading) return null;
   const intel = props.intel;
   const trafficColour =
@@ -1577,9 +1775,11 @@ function RouteIntelCard(props: {
                 label="Copy address"
                 variant="ghost"
                 size="md"
-                onPress={() =>
-                  void Share.share({ message: intel.resolvedAddress ?? '' }).catch(() => undefined)
-                }
+                onPress={async (): Promise<void> => {
+                  const ok = await copyToClipboard(intel.resolvedAddress ?? '');
+                  if (ok) toast.success('Address copied');
+                  else toast.error('Copy failed');
+                }}
               />
             ) : null}
           </View>

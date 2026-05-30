@@ -109,7 +109,8 @@ export interface PublicServiceAvailability {
 
 export interface QuickBookingInput {
   customerName?: string;
-  customerPhone: string;
+  /** Optional — emergency bookings may have no callable number yet. */
+  customerPhone?: string;
   customerEmail?: string;
   problemType?: string;
   jobType?: 'ASSESSMENT' | 'REPLACEMENT';
@@ -127,6 +128,12 @@ export interface QuickBookingInput {
   paymentMode?: 'CASH' | 'DEPOSIT' | 'FULL';
   /** Snapshot of the live price quote total (£). Required for DEPOSIT/FULL. */
   totalPriceGbp?: string;
+  /** Engine-suggested total before any admin manual edit. */
+  engineTotalPriceGbp?: string;
+  /** True when the admin manually edited the price away from the engine value. */
+  priceOverridden?: boolean;
+  /** Distance to job in miles, from the live quote. Used for learning bucket. */
+  distanceMiles?: number;
 }
 
 export interface QuickBookingResponse {

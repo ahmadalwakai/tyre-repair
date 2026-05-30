@@ -23,12 +23,29 @@ const baseMeta = buildPageMetadata({
 export const metadata: Metadata = {
   ...baseMeta,
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? siteConfig.baseUrl),
+  // NOTE: child pages emit titles via `buildSeoMetadata` which sets
+  // `title.absolute` to avoid double brand-suffix from the template.
   title: {
     default: 'Emergency Mobile Tyre Repair Scotland | TyreRepair UK',
     template: '%s | TyreRepair UK',
   },
   applicationName: siteConfig.businessName,
   formatDetection: { telephone: true, address: true, email: true },
+  icons: {
+    icon: [
+      { url: '/icon.png', type: 'image/png', sizes: '512x512' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    apple: [{ url: '/apple-icon.png', sizes: '180x180', type: 'image/png' }],
+    shortcut: ['/favicon.ico'],
+  },
+  manifest: '/manifest.webmanifest',
+  appleWebApp: {
+    capable: true,
+    title: siteConfig.businessName,
+    statusBarStyle: 'black-translucent',
+  },
+  category: 'automotive',
   ...(process.env.GOOGLE_SITE_VERIFICATION || process.env.BING_SITE_VERIFICATION
     ? {
         verification: {
@@ -44,16 +61,34 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#0A0A0A',
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)', color: '#0A0A0A' },
+    { media: '(prefers-color-scheme: light)', color: '#FFFFFF' },
+  ],
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 5,
-  colorScheme: 'dark',
+  // `maximumScale` intentionally omitted. Restricting zoom hurts accessibility
+  // and is a documented Lighthouse / Search Console signal. Users must be able
+  // to pinch-zoom freely.
+  colorScheme: 'dark light',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-GB" className={`${inter.variable} ${cinzel.variable}`} suppressHydrationWarning>
+      <head>
+        {/*
+          Preconnect to third-party origins that are required on the critical
+          render path for the booking flow. Each preconnect saves ~100-300ms
+          on first request by warming DNS + TLS before the script/style is
+          actually requested. Only origins we definitely use on most pages.
+        */}
+        <link rel="preconnect" href="https://api.mapbox.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://api.mapbox.com" />
+        <link rel="preconnect" href="https://events.mapbox.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://js.stripe.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://js.stripe.com" />
+      </head>
       <body>
         <LocalBusinessJsonLd />
         <Providers>{children}</Providers>

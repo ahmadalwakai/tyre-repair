@@ -5,6 +5,7 @@ import { AppShell, ScreenHeader } from '@/components/layout/AppShell';
 import { GoldCard } from '@/components/ui/GoldCard';
 import { AdminButton } from '@/components/ui/AdminButton';
 import { AnimatedCard } from '@/components/ui/AnimatedCard';
+import { CountUp } from '@/components/ui/CountUp';
 import { ErrorState, LoadingState } from '@/components/ui/States';
 import { OfflineBanner } from '@/components/system/OfflineBanner';
 import { NextBestActionCard } from '@/components/system/NextBestActionCard';
@@ -18,11 +19,38 @@ import type { TodaySummary } from '@/types/command-center';
 import { ApiError } from '@/lib/api/client';
 
 function Stat({ label, value }: { label: string; value: string | number }): React.JSX.Element {
+  // Detect numeric or £-prefixed-numeric values so we can animate them.
+  let body: React.ReactNode;
+  if (typeof value === 'number') {
+    body = (
+      <CountUp
+        to={value}
+        duration={700}
+        className="text-text font-semibold text-lg mt-1"
+      />
+    );
+  } else if (typeof value === 'string' && /^£-?\d/.test(value)) {
+    const num = Number(value.replace(/[^0-9.\-]/g, ''));
+    const decimals = value.includes('.') ? 2 : 0;
+    body = Number.isFinite(num) ? (
+      <CountUp
+        to={num}
+        duration={700}
+        decimals={decimals}
+        prefix="£"
+        className="text-text font-semibold text-lg mt-1"
+      />
+    ) : (
+      <Text className="text-text font-semibold text-lg mt-1">{value}</Text>
+    );
+  } else {
+    body = <Text className="text-text font-semibold text-lg mt-1">{value}</Text>;
+  }
   return (
     <View className="w-1/2 px-1 mb-2">
       <View className="bg-surface rounded-lg p-3 border border-border">
         <Text className="text-text-dim text-[10px] uppercase tracking-wide">{label}</Text>
-        <Text className="text-text font-semibold text-lg mt-1">{value}</Text>
+        {body}
       </View>
     </View>
   );
@@ -69,7 +97,7 @@ export default function TodayScreen(): React.JSX.Element {
                 setRefreshing(true);
                 void load();
               }}
-              tintColor="#D4AF37"
+              tintColor="#E30613"
             />
           }
         >

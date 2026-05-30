@@ -347,7 +347,7 @@ export function CurrentLocationCard({
                 variant="ghost"
                 size="sm"
               >
-                Enter address manually instead
+                Search for an address instead
               </GoldButton>
             )}
           </HStack>

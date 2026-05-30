@@ -68,7 +68,7 @@ async function reverseGeocode(
 
 function buildStaticMapUrl(lat: number, lng: number, token: string): string {
   // Marker + Mapbox Streets style
-  return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l-car+D4AF37(${lng},${lat})/${lng},${lat},15,0/600x300@2x?access_token=${encodeURIComponent(token)}`;
+  return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-l-car+E30613(${lng},${lat})/${lng},${lat},15,0/600x300@2x?access_token=${encodeURIComponent(token)}`;
 }
 
 export async function GET(

@@ -9,6 +9,7 @@ export interface StockItem {
   sizeLabel: string;
   tier: string;
   type: string;
+  basePriceGbp: number;
   quantityAvailable: number;
   lowStockThreshold: number;
   reservedQuantity: number;

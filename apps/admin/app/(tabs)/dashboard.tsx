@@ -1,10 +1,13 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, View, Text, RefreshControl } from 'react-native';
+import React from 'react';
+import { ScrollView, View, Text } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { AppShell, ScreenHeader } from '@/components/layout/AppShell';
 import { GoldCard } from '@/components/ui/GoldCard';
-import { ErrorState, LoadingState } from '@/components/ui/States';
+import { ErrorState } from '@/components/ui/States';
+import { DashboardSkeleton } from '@/components/ui/Skeleton';
 import { getDashboardSummary } from '@/lib/api/dashboard';
-import type { DashboardSummary } from '@/types/dashboard';
+import { qk } from '@/lib/query/keys';
+import { useRefresh } from '@/hooks/useRefresh';
 import { ApiError } from '@/lib/api/client';
 
 function MetricCard({ label, value, hint }: { label: string; value: string; hint?: string }): React.JSX.Element {
@@ -18,41 +21,28 @@ function MetricCard({ label, value, hint }: { label: string; value: string; hint
 }
 
 export default function DashboardScreen(): React.JSX.Element {
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const query = useQuery({
+    queryKey: qk.dashboard(),
+    queryFn: ({ signal }) => getDashboardSummary(signal),
+  });
+  const { refreshControl } = useRefresh(() => query.refetch());
 
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      const s = await getDashboardSummary();
-      setSummary(s);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : 'Could not load dashboard');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  if (loading) {
+  if (query.isLoading) {
     return (
       <AppShell>
         <ScreenHeader title="Dashboard" />
-        <LoadingState />
+        <DashboardSkeleton />
       </AppShell>
     );
   }
-  if (error || !summary) {
+  const summary = query.data;
+  if (query.isError || !summary) {
+    const message =
+      query.error instanceof ApiError ? query.error.message : 'Could not load dashboard';
     return (
       <AppShell>
         <ScreenHeader title="Dashboard" />
-        <ErrorState message={error ?? 'Empty'} onRetry={load} />
+        <ErrorState message={message} onRetry={() => void query.refetch()} />
       </AppShell>
     );
   }
@@ -63,16 +53,7 @@ export default function DashboardScreen(): React.JSX.Element {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ padding: 16, gap: 12 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => {
-              setRefreshing(true);
-              void load();
-            }}
-            tintColor="#D4AF37"
-          />
-        }
+        refreshControl={refreshControl}
       >
         <View className="flex-row">
           <MetricCard label="Today revenue" value={`£${summary.today.revenueGbp}`} hint={`${summary.today.payments} payments`} />

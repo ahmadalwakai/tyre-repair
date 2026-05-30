@@ -6,7 +6,7 @@ function resolveBaseUrl(): string {
     const apiPort = process.env.EXPO_PUBLIC_API_PORT ?? '3000';
     return `${window.location.protocol}//${window.location.hostname}:${apiPort}`;
   }
-  return process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:3000';
+  return process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://www.tyrerepair.uk';
 }
 
 export type ReportExportKind = 'today';

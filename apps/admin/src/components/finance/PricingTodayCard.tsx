@@ -106,7 +106,7 @@ export function PricingTodayCard(): React.JSX.Element {
     >
       {loading && !data ? (
         <View className="py-6 flex-row items-center justify-center">
-          <ActivityIndicator color="#D4AF37" />
+          <ActivityIndicator color="#E30613" />
           <Text className="text-text-dim text-sm ml-2">Loading…</Text>
         </View>
       ) : error && !data ? (

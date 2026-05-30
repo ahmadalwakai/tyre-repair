@@ -39,11 +39,17 @@ export function buildSeoMetadata(input: SeoPageMetadata): Metadata {
   const alt = buildOpenGraphImageAlt(input.title);
 
   const md: Metadata = {
-    title: input.title,
+    // `absolute` bypasses the root layout's `'%s | TyreRepair UK'` template so
+    // page titles that already include the brand suffix don't get the brand
+    // appended twice (`... | TyreRepair UK | TyreRepair UK`).
+    title: { absolute: input.title },
     description: input.description,
     alternates: {
       canonical: url,
-      languages: { 'en-GB': url },
+      languages: {
+        'en-GB': url,
+        'x-default': url,
+      },
     },
     openGraph: {
       title: input.title,
@@ -87,13 +93,13 @@ export function buildSeoMetadata(input: SeoPageMetadata): Metadata {
 export function buildNoIndexMetadata(input: SeoPageMetadata): Metadata {
   const url = getCanonicalUrl(input.path);
   return {
-    title: input.title,
+    title: { absolute: input.title },
     description: input.description,
     alternates: { canonical: url },
     robots: {
       index: false,
       follow: false,
-      googleBot: { index: false, follow: false },
+      googleBot: { index: false, follow: false, noimageindex: true },
     },
   };
 }

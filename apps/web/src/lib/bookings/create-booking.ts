@@ -1,6 +1,7 @@
 import { db, schema, eq, and, ne, isNotNull } from '@tyrerepair/db';
 import { generateTrackingId } from '@tyrerepair/db';
 import { createBookingPaymentIntent } from '@/lib/payments/stripe';
+import { getPricingExtras } from '@/lib/pricing/settings';
 import {
   CreatePendingBookingError,
   type CheckoutPaymentMode,
@@ -13,8 +14,6 @@ const TRACKING_ID_RETRIES = 5;
 
 /** Default 15% dispatch deposit when customer chooses DEPOSIT mode. */
 const DEPOSIT_PERCENTAGE = 0.15;
-/** Minimum deposit floor (£) to prevent uneconomic micro-deposits. */
-const MINIMUM_DEPOSIT_GBP = 10;
 
 function toPence(amount: string | number): number {
   const n = typeof amount === 'number' ? amount : Number(amount);
@@ -28,14 +27,14 @@ interface DepositCalculation {
   depositPercentage: string;
 }
 
-function calculateDeposit(totalPriceGbp: string): DepositCalculation {
+function calculateDeposit(totalPriceGbp: string, minimumDepositGbp: number): DepositCalculation {
   const total = Number(totalPriceGbp);
   if (!Number.isFinite(total) || total <= 0) {
     return { depositAmountGbp: '0.00', balanceDueGbp: '0.00', depositPercentage: '0.1500' };
   }
   const rawDeposit = total * DEPOSIT_PERCENTAGE;
   const minimumApplied =
-    total >= MINIMUM_DEPOSIT_GBP ? Math.max(rawDeposit, MINIMUM_DEPOSIT_GBP) : total;
+    total >= minimumDepositGbp ? Math.max(rawDeposit, minimumDepositGbp) : total;
   const deposit = Math.min(minimumApplied, total);
   const balance = Math.max(0, total - deposit);
   return {
@@ -281,7 +280,9 @@ export async function createPendingBookingForQuote(
     );
   }
 
-  const depositCalc = isDeposit ? calculateDeposit(quote.totalPriceGbp) : null;
+  const depositCalc = isDeposit
+    ? calculateDeposit(quote.totalPriceGbp, (await getPricingExtras()).minimumDepositGbp)
+    : null;
   const totalPence = toPence(quote.totalPriceGbp);
   const chargePence = isDeposit && depositCalc ? toPence(depositCalc.depositAmountGbp) : totalPence;
 

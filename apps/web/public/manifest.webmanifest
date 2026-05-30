@@ -1,0 +1,42 @@
+{
+  "name": "TyreRepair UK",
+  "short_name": "TyreRepair UK",
+  "description": "24/7 Scotland-wide mobile tyre repair and replacement. Emergency flat tyre, puncture and tyre replacement callouts — vans come to you anywhere in Scotland.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
+  "lang": "en-GB",
+  "dir": "ltr",
+  "categories": ["automotive", "business", "utilities"],
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Get instant emergency quote",
+      "short_name": "Quote",
+      "url": "/quote",
+      "description": "Start a 24/7 mobile tyre callout quote"
+    },
+    {
+      "name": "Call TyreRepair UK",
+      "short_name": "Call",
+      "url": "/contact",
+      "description": "View phone and WhatsApp contact options"
+    }
+  ]
+}

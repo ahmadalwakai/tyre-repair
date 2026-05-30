@@ -11,7 +11,7 @@ import type {
   SendAdminNotificationResult,
 } from './types';
 
-const DEFAULT_SOUND = process.env.ADMIN_NOTIFICATION_DEFAULT_SOUND ?? 'admin-alert.mp3';
+const DEFAULT_SOUND = process.env.ADMIN_NOTIFICATION_DEFAULT_SOUND ?? 'admin_alert.mp3';
 
 const PREF_FOR_CATEGORY: Record<AdminPushNotificationCategory, keyof AdminNotificationPreferences> = {
   'booking.created': 'bookingAlertsEnabled',

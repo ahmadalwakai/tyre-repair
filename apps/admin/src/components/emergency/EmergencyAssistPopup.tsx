@@ -18,6 +18,7 @@ import {
 } from '@/context/NotificationProvider';
 import { WORKSHOP } from '@/lib/workshop';
 import { AdminButton } from '@/components/ui/AdminButton';
+import { AnimatedBorder } from '@/components/ui/AnimatedBorder';
 import { useToast } from '@/components/ui/Toast';
 import { colors } from '@/theme/colors';
 import {
@@ -416,13 +417,16 @@ function PopupBody({
               </View>
 
               {mapUrl ? (
-                <View
+                <AnimatedBorder
+                  radius={10}
+                  strokeWidth={2}
+                  color="#F01825"
+                  segmentLength={120}
+                  durationMs={2400}
                   style={{
                     borderRadius: 10,
                     overflow: 'hidden',
                     marginBottom: 12,
-                    borderWidth: 1,
-                    borderColor: colors.border,
                   }}
                 >
                   <Image
@@ -430,7 +434,7 @@ function PopupBody({
                     style={{ width: '100%', height: 200 }}
                     resizeMode="cover"
                   />
-                </View>
+                </AnimatedBorder>
               ) : hasCustomerCoords && !hasMapboxToken() ? (
                 <Text style={{ color: colors.warningBright, fontSize: 11, marginBottom: 12 }}>
                   Map unavailable — EXPO_PUBLIC_MAPBOX_TOKEN is not set.

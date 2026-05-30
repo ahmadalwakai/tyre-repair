@@ -1,11 +1,17 @@
 import 'server-only';
 
+import { db, schema, eq } from '@tyrerepair/db';
 import { siteConfig } from '@/lib/site-config';
 
 /**
  * Admin Efficiency Pack — Feature 3: Customer Message Templates.
  *
  * Safe, professional UK English templates. No fake ETAs, no scarcity.
+ *
+ * Defaults live in code so the app always boots with sane copy. Admin edits
+ * are stored in `app_settings.key='message_templates.overrides'` as a JSON
+ * map `{ <KEY>: { template: string } }` and merged on read with a short
+ * in-process cache so render calls stay cheap.
  */
 
 export type AdminMessageTemplateKey =
@@ -114,21 +120,74 @@ const TEMPLATES: ReadonlyArray<AdminMessageTemplate> = [
   },
 ];
 
-export function listAdminMessageTemplates(): ReadonlyArray<AdminMessageTemplate> {
+export function listAdminMessageTemplateDefaults(): ReadonlyArray<AdminMessageTemplate> {
   return TEMPLATES;
 }
 
-export function getAdminMessageTemplate(
-  key: AdminMessageTemplateKey,
-): AdminMessageTemplate | null {
-  return TEMPLATES.find((t) => t.key === key) ?? null;
+export const MESSAGE_TEMPLATE_OVERRIDES_KEY = 'message_templates.overrides';
+
+interface TemplateOverride {
+  template?: string;
+}
+type OverridesMap = Partial<Record<AdminMessageTemplateKey, TemplateOverride>>;
+
+let overridesCache: { map: OverridesMap; loadedAt: number } | null = null;
+const OVERRIDES_TTL_MS = 30_000;
+
+async function loadOverrides(): Promise<OverridesMap> {
+  const now = Date.now();
+  if (overridesCache && now - overridesCache.loadedAt < OVERRIDES_TTL_MS) {
+    return overridesCache.map;
+  }
+  try {
+    const rows = await db
+      .select({ value: schema.appSettings.value })
+      .from(schema.appSettings)
+      .where(eq(schema.appSettings.key, MESSAGE_TEMPLATE_OVERRIDES_KEY))
+      .limit(1);
+    const stored = (rows[0]?.value as OverridesMap | undefined) ?? {};
+    overridesCache = { map: stored, loadedAt: now };
+    return stored;
+  } catch {
+    overridesCache = { map: {}, loadedAt: now };
+    return {};
+  }
 }
 
-export function renderAdminMessageTemplate(
+export function clearMessageTemplateOverridesCache(): void {
+  overridesCache = null;
+}
+
+function mergeOne(
+  base: AdminMessageTemplate,
+  overrides: OverridesMap,
+): AdminMessageTemplate {
+  const ov = overrides[base.key];
+  if (!ov || typeof ov.template !== 'string' || ov.template.trim().length === 0) {
+    return base;
+  }
+  return { ...base, template: ov.template };
+}
+
+export async function listAdminMessageTemplates(): Promise<ReadonlyArray<AdminMessageTemplate>> {
+  const overrides = await loadOverrides();
+  return TEMPLATES.map((t) => mergeOne(t, overrides));
+}
+
+export async function getAdminMessageTemplate(
+  key: AdminMessageTemplateKey,
+): Promise<AdminMessageTemplate | null> {
+  const base = TEMPLATES.find((t) => t.key === key) ?? null;
+  if (!base) return null;
+  const overrides = await loadOverrides();
+  return mergeOne(base, overrides);
+}
+
+export async function renderAdminMessageTemplate(
   key: AdminMessageTemplateKey,
   vars: AdminMessageTemplateVariables,
-): string | null {
-  const t = getAdminMessageTemplate(key);
+): Promise<string | null> {
+  const t = await getAdminMessageTemplate(key);
   if (!t) return null;
   const merged: AdminMessageTemplateVariables = {
     servicePhoneNumber: siteConfig.phoneDisplay,
