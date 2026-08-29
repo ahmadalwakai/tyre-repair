@@ -9,6 +9,18 @@
     {
       "path": "/api/cron/cleanup-abandoned-bookings",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/sync-tyrerescue",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/sync-tyrerescue-stock",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/sync-tr-catalogue",
+      "schedule": "0 */6 * * *"
     }
   ]
 }
